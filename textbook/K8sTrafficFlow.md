@@ -1,6 +1,6 @@
 
 
-# Kubernetes 구축 및 Traffic Flow 이해
+# < Kubernetes 구축 및 Traffic Flow 이해 >
 
 
 
@@ -211,13 +211,13 @@ $ eixt
 
 # 2. [개인Cluster] Userlist 실습
 
+Kubernetes 클러스터에서 트래픽이 어떻게 흐르는지 이해하는 것은 클러스터의 성능과 안정성을 유지하는 데 매우 중요한 포인트 이다.
+
+Userlist 라는 APP을 배포하여 접근 하는 실습으로 수행해보자.
 
 
-## 1) Namespace 생성
 
-
-
-### (1) 개인별 Namespace ★★★
+## 1) 개인별 Namespace ★★★
 
 아래 정보를 참조하여 개인별 Namespace 정보를 확인하자.
 
@@ -251,7 +251,7 @@ No resources found in user03 namespace.
 
 
 
-### (2) Alias 수정
+### Alias 수정
 
 kubectl 명령과 각종 namespace 를 매번 입력하기가 번거롭다면 위와 같이 alias 를 정의후 사용할 수 있으니 참고 하자.
 
@@ -286,25 +286,33 @@ $ source ~/env
 
 ## 2) Userlist Deploy
 
+kustomize 를 이용한다면 웹상에의 yaml 을 쉽게 이용할 수 있다.
 
+github.com/ssongman/userlist 의 kustomize 를 이용해서 쉽게 배포해 보자.
 
 ```sh
 
+# 배포
 $ ku apply -k github.com/ssongman/userlist
 
+
+
+# 확인
 $ ku get all
 NAME                           READY   STATUS    RESTARTS   AGE
 pod/curltest                   1/1     Running   0          23h
-pod/userlist-9fbfc64bc-8pczv   1/1     Running   0          23s
+pod/userlist-9fbfc64bc-8pczv   1/1     Running   0          19m
+pod/userlist-9fbfc64bc-9vpwc   1/1     Running   0          6s
 
 NAME                   TYPE        CLUSTER-IP      EXTERNAL-IP   PORT(S)   AGE
 service/userlist-svc   ClusterIP   10.43.113.209   <none>        80/TCP    23h
 
 NAME                       READY   UP-TO-DATE   AVAILABLE   AGE
-deployment.apps/userlist   1/1     1            1           23s
+deployment.apps/userlist   2/2     2            2           19m
 
 NAME                                 DESIRED   CURRENT   READY   AGE
-replicaset.apps/userlist-9fbfc64bc   1         1         1       23s
+replicaset.apps/userlist-9fbfc64bc   2         2         2       19m
+
 
 ```
 
@@ -312,15 +320,138 @@ replicaset.apps/userlist-9fbfc64bc   1         1         1       23s
 
 
 
+## 3) Ingress
+
+ingress 를 생성해 보자.
+
+자신 VM의 공인IP로 변경해야 한다.
+
+```sh
+
+
+$ cat <<EOF | ku create -f -
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: userlist-ingress
+spec:
+  ingressClassName:  "traefik"
+  rules:
+  - host: "userlist.[my-public-ip].nip.io"    #  <-- 자신의 공인 IP 로 변경
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: userlist-svc
+            port:
+              number: 80
+EOF
+
+
+# 예
+# 변경전 userlist.[my-public-ip].nip.io
+# 변경후 userlist.4.217.252.117.nip.io       #  <-- 자신의 공인 IP 로 변경
+
+
+
+# ingress 생성 확인
+
+$ ku get ingress
+NAME               CLASS     HOSTS                           ADDRESS    PORTS   AGE
+userlist-ingress   traefik   userlist.4.217.252.117.nip.io   10.0.0.9   80      9m18s
+
+```
+
+
+
+## 4) 접속 확인
+
+traefik node port 를 확인후 curl로 테스트 해보자.
+
+```sh
+# traefik node node port 확인
+$ kubectl -n kube-system get svc traefik
+NAME             TYPE           CLUSTER-IP      EXTERNAL-IP   PORT(S)                      AGE
+traefik          LoadBalancer   10.43.2.251     10.0.0.9      80:31571/TCP,443:32207/TCP   23h
+
+
+# < VM 에서 직접 확인 >
+
+# 1) localhost로 확인
+$ curl http://localhost:31571/users/1 -H "Host:userlist.4.217.252.117.nip.io"
+{"id":1,"name":"Noemi Abbott","gender":"F","image":"/assets/image/cat1.jpg"}
+
+$ curl http://localhost:80/users/1 -H "Host:userlist.4.217.252.117.nip.io"
+{"id":1,"name":"Noemi Abbott","gender":"F","image":"/assets/image/cat1.jpg"}
+
+
+
+# 2) node IP 로 확인
+# IP 확인
+$ ifconfig eth0
+eth0: flags=4163<UP,BROADCAST,RUNNING,MULTICAST>  mtu 1500
+        inet 10.0.0.9  netmask 255.255.255.0  broadcast 10.0.0.255
+        
+# IP : 10.0.0.9
+
+
+# node IP 로 접근해도 동일한 결과를 받을 수 있다.
+$ curl http://10.0.0.9:31571/users/1 -H "Host:userlist.4.217.252.117.nip.io"
+{"id":1,"name":"Jacinto Pollich IV","gender":"F","image":"/assets/image/cat1.jpg"}
+
+$ curl http://10.0.0.9:80/users/1 -H "Host:userlist.4.217.252.117.nip.io"
+{"id":1,"name":"Jacinto Pollich IV","gender":"F","image":"/assets/image/cat1.jpg"}
+
+
+
+
+# 3) node public IP 로 확인
+$ curl http:/4.217.252.117:31571/users/1 -H "Host:userlist.4.217.252.117.nip.io"
+# 방화벽이 막혀 있어서 불가
+
+$ curl http:/4.217.252.117:80/users/1 -H "Host:userlist.4.217.252.117.nip.io"
+{"id":1,"name":"Jacinto Pollich IV","gender":"F","image":"/assets/image/cat1.jpg"}
 
 
 
 
 
+# 4) domain 으로 확인
+$ curl http:/userlist.4.217.252.117.nip.io:31571/users/1
+# 방화벽이 막혀 있어서 불가
+
+$ curl http:/userlist.4.217.252.117.nip.io:80/users/1
+{"id":1,"name":"Jacinto Pollich IV","gender":"F","image":"/assets/image/cat1.jpg"}
 
 
 
+# 5) web brower에서 domain 으로 확인
+http:/userlist.4.217.252.117.nip.io:31571/users/1
+# 방화벽이 막혀 있어서 불가
 
+http:/userlist.4.217.252.117.nip.io:80/users/1
+{"id":1,"name":"Jacinto Pollich IV","gender":"F","image":"/assets/image/cat1.jpg"}
+
+
+http://userlist.4.217.252.117.nip.io/
+# 가능
+
+```
+
+
+
+* 결론
+  * Node 에서 직접 Node Port 나 80 Port로도 접근하는 것은 문제가 없다.
+  * 외부망을 통과하는 Call Test시에는 방화벽이슈로 Node Port 연결은 불가하다.
+  * 외부망 경유라도 80은 방화벽을 열었기 때문에 연결 가능하다.
+
+
+
+위와 같이 결론을 내릴 수 있다.
+
+트래픽이 어떻게 외부망에에서 부터 유입되어 POD 까지 전달되는지는 아래에서 좀더 살펴보자.
 
 
 
@@ -330,17 +461,15 @@ replicaset.apps/userlist-9fbfc64bc   1         1         1       23s
 
 # 3. [EduCluster] Traffic Flow 이해
 
-## 1) 개요
-
-Kubernetes 클러스터에서 트래픽이 어떻게 흐르는지 이해하는 것은 클러스터의 성능과 안정성을 유지하는 데 매우 중요하다. 
-
 Cluster 외부에서 부터 출발한 트래픽이 어떻게 흘러가는지 살펴보자.
 
+EduCluster 에 이미 설치되어 있는 Userlist 를 확인해 보자.
 
 
 
 
-## 2) Userlist Traffic Flow
+
+## 1) Userlist 접속
 
 개인 Browser 에서 아래 URL 로 접속을 시도해 보자.
 
@@ -362,9 +491,7 @@ https://userlist.songedu.duckdns.org
 
 
 
-
-
-### (1) Userlist Request Traffic flow
+## 2)  Userlist Request Traffic flow
 
 userlist 는 app 은 Azure Cloud 에서 서비스 되고 있으며 아래와 같은 아키텍처로 표현할 수 있다.
 
@@ -385,7 +512,7 @@ userlist 는 app 은 Azure Cloud 에서 서비스 되고 있으며 아래와 같
 
 
 
-### (2) Azure Load Balacner
+## 3) Azure Load Balacner
 
 Load Balancer 에서는 프런트엔드 와 백엔드 풀을 연결해주는 역할을 한다.
 
@@ -399,7 +526,7 @@ Load Balancer 에서는 프런트엔드 와 백엔드 풀을 연결해주는 역
 
 
 
-### (3) Ingress Controller 확인
+## 4) Ingress Controller 확인
 
 인그레스는 클러스터 내의 서비스에 대한 외부 접근을 관리하는 API 오브젝트이며, 일반적으로 HTTP를 관리한다.
 
@@ -488,7 +615,7 @@ spec:
 
 
 
-### (4) Ingress
+## 5) Ingress
 
 userlist-Ingress를 살펴보자.
 
@@ -532,7 +659,7 @@ status:
 
 
 
-### (5) Service 
+## 6) Service 
 
 ```sh
 $ kubectl -n yjsong get svc  userlist-svc -o yaml
@@ -568,24 +695,13 @@ status:
 
 * 서비스로 유입된 트래픽은 selector에 의해서 POD로 연결된다.
 * 동일 Namespace 에 있는 POD 중 label 이 app: userlist 가 있는 POD 가 destination 대상이 된다.
-* 트래픽이 올때마다 RoundRobbin 방식으로 각 POD들로 연결된다.
+* 트래픽이 유입될 때마다 RoundRobbin 방식으로 각 POD들로 연결된다.
 
 
 
 
 
-## 3) 전체 트래픽 흐름 예시
+## 7) 결론
 
-1. **클라이언트**: 외부 클라이언트가 DNS 이름 `myapp.example.com`으로 요청을 보냅니다.
-2. **Load Balancer**: 요청이 Cloud 제공자의 Load Balancer로 전달됩니다.
-3. **Node**: Load Balancer는 요청을 적절한 Node의 NodePort로 전달합니다.
-4. **Service**: NodePort를 통해 들어온 트래픽은 Service를 통해 적절한 Pod로 라우팅됩니다.
-5. **Ingress Controller**: Ingress Controller는 도메인 이름과 경로 기반으로 트래픽을 적절한 Service로 전달합니다.
-
-이와 같이 Kubernetes의 트래픽 흐름을 이해하면, 클러스터의 네트워크 구성 및 문제 해결에 큰 도움이 됩니다.
-
-------
-
-### 결론
-
-K3s를 이용한 Kubernetes 클러스터 구축과 Cloud 환경에서의 트래픽 흐름을 이해하는 것은 클러스터 운영의 핵심이다. 이를 통해 더 효율적이고 안정적인 클러스터를 운영할 수 있다.
+* Cloud 환경에서의 Kubernetes 트래픽 흐름을 이해하는 것은 클러스터의 네트워크 구성 및 문제 해결에 큰 도움이 된다.
+* 이를 통해 더 효율적이고 안정적인 클러스터를 운영할 수 있다.
