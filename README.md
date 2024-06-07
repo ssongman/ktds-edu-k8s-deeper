@@ -15,6 +15,49 @@
 
 
 
+* Kubernetes구축 및 Traffic Flow 이해
+  * 파일명 : K8sTrafficFlow.md
+  * k3s구축
+  * Cloud에서 Kubernetes Traffic Flow
+    * LB --> Node --> Service --> Ingress Controller
+* k9s 활용한 Cluster 관리
+  * 파일명 : k9s.md
+  * k9s 설치
+  * nodes
+  * namespace 
+  * deploy
+  * svc
+  * pod
+  * xray
+* Kubernetes Monitoring <-- 완료
+  * 파일명 : K8sMonitoring.md
+* POD Health Check 관리
+  * 파일명 : HealthCheck.md
+* POD 리소스 관리
+  * 파일명 : Resource.md
+* Headless Service 활용한 POD 접근
+  * 파일명 : HeadlessService.md
+* Init Container
+  * 파일명 : InitContainer.md
+* 인증서 관리
+  * 파일명 : Certificate.md
+*  K8s 멀티클러스터링
+  * 파일명 : MultiCluster.md
+  * 멀티 클러스터링 필요성
+  * Clium 을 활용한 멀티 클러스터링 실습
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
