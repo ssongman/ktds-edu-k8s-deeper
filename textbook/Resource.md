@@ -122,11 +122,11 @@ resource-demo              0m           2Mi
 
 `limits.memory`로 설정된 값을 초과하면 컨테이너는 OOM(Out of Memory) 에러를 발생시키고, Kubernetes는 해당 컨테이너를 재시작 시킨다.
 
-Limit  memory 를 좀더 정확히 이해하기 위해서 실제 실습을 수행해보자.
+`limits.memory`를 좀더 정확히 이해하기 위해서 실제 실습을 수행해보자.
 
 
 
-### 1. **Pod 정의 및 배포**
+### **Pod 정의 및 배포**
 
 ```sh
 
@@ -148,7 +148,7 @@ spec:
         memory: "64Mi"
         cpu: "250m"
       limits:
-        memory: "128Mi"
+        memory: "512Mi"
         cpu: "500m"
 EOF
 
@@ -173,31 +173,26 @@ resource-demo   0m           0Mi
 
 
 
-### 2. 메모리 사용량 증가 스크립트 작성
+### 메모리 사용량 증가 스크립트 작성
 
-메모리를 인위적으로 증가시키기 위한 Python 스크립트를 작성합니다. 이 스크립트는 큰 배열을 생성하여 메모리를 소모합니다.
+메모리를 인위적으로 증가시키기 위한 Python 스크립트를 작성한다. 이 스크립트는 큰 배열을 생성하여 메모리를 소모한다.
 
-
-
-`memory_hog.py` 파일을 작성합니다:
+`memory_hog.py` 파일을 작성
 
 ```sh
-
 
 $ ku exec -it resource-demo -- sh
 
 
 # PS1 변수 설정 (색상이 포함된 설정)
-PS1='\[\e[32m\]\u@\h \[\e[33m\]\w\[\e[0m\]\$ '
+$ PS1='\[\e[32m\]\u@\h \[\e[33m\]\w\[\e[0m\]\$ '
+
 
 $ mkdir -p ~/app/src
   cd ~/app/src
 
-
-$ 
+$ cat > memory_hog.py
 ```
-
-
 
 
 
@@ -214,32 +209,88 @@ if __name__ == "__main__":
     memory_hog()
 ```
 
-### 3. 메모리 사용량 증가 스크립트를 Pod에서 실행
 
-`kubectl exec` 명령을 사용하여 Pod 내에서 스크립트를 실행합니다.
 
-먼저 Pod에 스크립트를 복사합니다:
+
+
+
+
+
+
+
+
+### 실행 및 모니터링
+
+효과적인 모니터링을 위해 terminal 4개를 준비한다.
+
+
+
+#### terminal 1
+
+* k9s 실행
+
+
+
+
+
+#### terminal 2
+
+* top pod  명령을 1초에 한번씩 실행
+
+* ```sh
+  
+   while true; do ku top pod resource-demo ; sleep 1; echo; done
+  
+  ```
+
+  
+
+
+
+#### terminal 3
+
+* events 를 확인한다.
+
+* ```sh
+  
+  $ ku events -w
+  
+  ```
+
+  
+
+
+
+#### terminal 4
+
+* 메모리 사용량 증가 스크립트 실행
+* 
+
+```sh
+
+$ cd ~/app/src
+
+$ python memory_hog.py
 
 ```
-kubectl cp memory_hog.py resource-demo:/memory_hog.py
-```
 
-그런 다음 Pod 내에서 스크립트를 실행합니다:
 
-```
-kubectl exec -it resource-demo -- python /memory_hog.py
-```
 
-### 4. OOM 발생 확인
 
-몇 초 후, `kubectl describe pod resource-demo` 명령을 사용하여 OOM 이벤트를 확인할 수 있습니다:
+
+
+
+#### OOM 발생 확인
+
+몇 초 후, `kubectl describe pod resource-demo` 명령을 사용하여 OOM 이벤트를 확인할 수 있다.
 
 ```
 
-kubectl describe pod resource-demo
+ku describe pod resource-demo
+
 ```
 
-`kubectl describe pod` 명령의 출력에는 다음과 같은 OOMKilled 메시지가 포함될 것입니다:
+`kubectl describe pod` 명령의 출력에는 다음과 같은 OOMKilled 메시지가 포함될 것이다.
 
 ```
 State:          Waiting
@@ -249,20 +300,33 @@ Last State:     Terminated
   Exit Code:    137
 ```
 
-또는 `kubectl get events` 명령을 사용하여 클러스터 이벤트를 확인할 수도 있습니다:
+또는 `kubectl get events` 명령을 사용하여 클러스터 이벤트를 확인할 수도 있다.
 
 ```
 
-kubectl get events --sort-by=.metadata.creationTimestamp
+ku get events --sort-by=.metadata.creationTimestamp
+ku get events -w
+
 ```
 
-### 요약
-
-위 단계를 통해, 컨테이너가 `limits.memory`로 설정된 값을 초과할 때 발생하는 OOM 상황을 실습할 수 있습니다. 이를 통해 수강생들은 Kubernetes의 리소스 관리 기능을 직접 경험하고 이해할 수 있게 됩니다.
 
 
 
 
+### Clean Up
+
+```sh
+$ ku delete pod resource-demo
+
+```
+
+
+
+
+
+
+
+# 3. 리소스 쿼터
 
 
 
