@@ -11,40 +11,67 @@
 
 
 
+# K8s 구축 및 Traffic Flow ([바로가기](./textbook/K8sTrafficFlow.md))  
+
+* 파일명 : K8sTrafficFlow.md
+* k3s구축
+* Cloud에서 Kubernetes Traffic Flow
+  * LB --> Node --> Service --> Ingress Controller
 
 
 
+# K9s 활용한 Cluster 관리 ([바로가기](./textbook/K9s.md))  
 
-* Kubernetes구축 및 Traffic Flow 이해
-  * 파일명 : K8sTrafficFlow.md
-  * k3s구축
-  * Cloud에서 Kubernetes Traffic Flow
-    * LB --> Node --> Service --> Ingress Controller
-* k9s 활용한 Cluster 관리
-  * 파일명 : k9s.md
-  * k9s 설치
-  * nodes
-  * namespace 
-  * deploy
-  * svc
-  * pod
-  * xray
-* Kubernetes Monitoring <-- 완료
-  * 파일명 : K8sMonitoring.md
-* POD Health Check 관리
-  * 파일명 : HealthCheck.md
-* POD 리소스 관리
-  * 파일명 : Resource.md
-* Headless Service 활용한 POD 접근
-  * 파일명 : HeadlessService.md
-* Init Container
-  * 파일명 : InitContainer.md
-* 인증서 관리
-  * 파일명 : Certificate.md
-*  K8s 멀티클러스터링
-  * 파일명 : MultiCluster.md
-  * 멀티 클러스터링 필요성
-  * Clium 을 활용한 멀티 클러스터링 실습
+* K9s의 주요 기능 및 장점
+* K9S 설치 및 기본화면 이해
+* K9s 주요 기능 실습
+  * deploy, svc, pod, xray 등
+
+
+
+# K8s Monitoring ([바로가기](./textbook/K8sMonitoring.md))
+
+* 파일명 : K8sMonitoring.md
+* kube-prometheus-stack 설치
+*  Prometheus 확인
+  * Target, Graph, PromQL 예제 확인
+* Grafana UI / Dashboard 확인
+  * CoreDNS, Namespace, Pods, Workdloads, Nodes 등
+
+
+
+# POD Health Check 관리 ([바로가기](./textbook/HealthCheck.md))
+
+* 파일명 : HealthCheck.md
+* Health Check의 중요성
+* Health Check의 종류
+* LivenessProbe, ReadinessProbe, StartupProbe 실습
+
+
+
+# POD 리소스 관리 ([바로가기](./textbook/Resource.md))
+
+* 파일명 : Resource.md
+
+
+
+# Headless Service 활용한 POD 접근 ([바로가기](./textbook/HeadlessService.md))
+
+* 파일명 : HeadlessService.md
+
+
+
+# K8s 멀티클러스터링 ([바로가기](./textbook/MultiCluster.md))
+
+* 멀티 클러스터 개요 : 클러스터 확정 및 멀티 클러스터링 필요성
+* 사례로 보는 멀티 클러스터 가 필요성 
+* Clium 을 활용한 멀티 클러스터링 구조 및 실습
+
+
+
+# Init Container ([바로가기](./textbook/InitContainer.md))
+
+* 파일명 : InitContainer.md
 
 
 
@@ -197,14 +224,3 @@
   - istio는 Connection pool 과  Load balancing pool 기반의 circuit breaking 기능을 제공한다.
 
 
-
-
-
-
-
-
-# 4. 별첨: Istio-Setup( [가이드 문서 보기](./istio/Istio-Setup.md) )  
-
-* Istio setup
-* Istio Monitoring tool Install
-  * prometheus, grafana, kiali, jaeger install script

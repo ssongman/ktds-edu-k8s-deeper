@@ -4,7 +4,7 @@
 
 # 1. 개요
 
-* k3s로 구성된 Kubernetes 클러스터에서 Grafana를 사용하여 모니터링을 설정하고 관리하는 방법 검토
+* k3s로 구성된 Kubernetes 클러스터에서 Grafana를 사용하여 모니터링을 설정하고 관리하는 방법을 검토한다.
 
 
 
@@ -35,7 +35,9 @@
 ## 1) [참고] Helm 설치(설치되지 않은 경우)
 
 ```sh
-curl https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 | bash
+
+$ curl https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 | bash
+
 ```
 
 
@@ -50,6 +52,7 @@ curl https://raw.githubusercontent.com/helm/helm/master/scripts/get-helm-3 | bas
 
 
 # CRD 설치
+$
 kubectl apply --server-side -f https://raw.githubusercontent.com/prometheus-operator/prometheus-operator/main/example/prometheus-operator-crd/monitoring.coreos.com_alertmanagers.yaml
 kubectl apply --server-side -f https://raw.githubusercontent.com/prometheus-operator/prometheus-operator/main/example/prometheus-operator-crd/monitoring.coreos.com_podmonitors.yaml
 kubectl apply --server-side -f https://raw.githubusercontent.com/prometheus-operator/prometheus-operator/main/example/prometheus-operator-crd/monitoring.coreos.com_probes.yaml
