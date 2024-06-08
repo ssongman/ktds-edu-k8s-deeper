@@ -30,7 +30,7 @@ Headless Service를 활용하여 POD들의 IP를 회득하는 방법에 대해�
 
 
 
-# 2. Headless Service 활용한 IP 획득 분석
+# 2. Headless Service 활용한 POD IP 획득
 
 일반적으로 Service는 고유의 IP를 가지고 있으며 Load Balancer(Proxy) 역할을 수행한다.
 

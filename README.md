@@ -57,7 +57,9 @@
 
 # Headless Service 활용한 POD 접근 ([바로가기](./textbook/HeadlessService.md))
 
-* 파일명 : HeadlessService.md
+* Headless Service 활용한 POD IP 획득
+* Java Sample 확인
+* Python Sample 확인
 
 
 
