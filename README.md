@@ -51,7 +51,10 @@
 
 # POD 리소스 관리 ([바로가기](./textbook/Resource.md))
 
-* 파일명 : Resource.md
+* 리소스 관리 개념
+* Limit 초과히 OOM 발생 상황 구현
+* 리소스 쿼터, QoS Class
+* HPA(AutoScaling) 동작원리 및 실습
 
 
 
@@ -68,13 +71,4 @@
 * 멀티 클러스터 개요 : 클러스터 확정 및 멀티 클러스터링 필요성
 * 사례로 보는 멀티 클러스터 가 필요성 
 * Clium 을 활용한 멀티 클러스터링 구조 및 실습
-
-
-
-# Init Container ([바로가기](./textbook/InitContainer.md))
-
-* 파일명 : InitContainer.md
-
-
-
 

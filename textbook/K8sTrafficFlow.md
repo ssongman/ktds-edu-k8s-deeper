@@ -88,6 +88,9 @@ Server Version: v1.29.5+k3s1
 
 # Client 와 Server Version 이 각각 보인다면 설치가 잘 된 것이다.
 
+
+# root shell 종료(일반사용자로 전환)
+$ exit
 ```
 
 
@@ -196,8 +199,12 @@ $ sudo -s
 $ sh /usr/local/bin/k3s-killall.sh
   sh /usr/local/bin/k3s-uninstall.sh
 
-# 확인
+# 확인1
 $ ps -ef|grep k3s
+
+# 확인
+$ systemctl status k3s
+
 
 # 사용자 권한으로
 $ eixt

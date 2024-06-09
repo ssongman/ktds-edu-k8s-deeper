@@ -69,7 +69,7 @@ spec:
 
 ## 1)  limit / Request 확인
 
-limit / Request memory 를 좀더 정확히 이해하기 위해서 
+limit / Request memory 를 좀더 정확히 이해하기 위해서 nginx Sample을 배포후 메모리 사용율과 Grafana에서 리소스 Limit 과 request 설정값을 확인해 보자.
 
 
 
@@ -477,10 +477,6 @@ Kubernetes는 Node Pressure상황(예를 들어 메모리 부족이나 디스크
 
 
 
-
-
-
-
 # 5. HPA (AutoScaling)
 
 > Horizontal Pod Autoscaler (HPA)
@@ -757,5 +753,4 @@ ku delete svc nginx-deployment-svc
 Horizontal Pod Autoscaler(HPA) 에 대한 개념이해와 HPA 설정으로 자동 스케일링 실습을 수행했다.
 
 HPA는 워크로드에 따라 리소스를 효율적으로 관리하는 데 중요한 도구이다.
-
 
