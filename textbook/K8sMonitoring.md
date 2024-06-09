@@ -74,13 +74,14 @@ customresourcedefinition.apiextensions.k8s.io/thanosrulers.monitoring.coreos.com
 
 ## 확인
 $ kubectl get crds | grep monitoring.coreos.com
-alertmanagers.monitoring.coreos.com        2024-06-07T07:06:26Z
-podmonitors.monitoring.coreos.com          2024-06-07T07:06:40Z
-probes.monitoring.coreos.com               2024-06-07T07:06:40Z
-prometheuses.monitoring.coreos.com         2024-06-07T07:06:41Z
-prometheusrules.monitoring.coreos.com      2024-06-07T07:06:42Z
-servicemonitors.monitoring.coreos.com      2024-06-07T07:06:42Z
-thanosrulers.monitoring.coreos.com         2024-06-07T07:06:43Z
+alertmanagers.monitoring.coreos.com        2024-06-08T11:20:41Z
+podmonitors.monitoring.coreos.com          2024-06-08T11:20:42Z
+probes.monitoring.coreos.com               2024-06-08T11:20:42Z
+prometheuses.monitoring.coreos.com         2024-06-08T11:20:43Z
+prometheusrules.monitoring.coreos.com      2024-06-08T11:20:44Z
+servicemonitors.monitoring.coreos.com      2024-06-08T11:20:44Z
+thanosrulers.monitoring.coreos.com         2024-06-08T11:20:45Z
+
 
 ```
 
@@ -123,9 +124,10 @@ $ mkdir -p ~/helm/charts
 $ helm fetch prometheus-community/kube-prometheus-stack
 
 $ ll 
--rw-r--r-- 1 song song 514087 Jun  7 06:46 kube-prometheus-stack-60.0.0.tgz
+-rw-r--r-- 1 ktdseduuser ktdseduuser 513880 Jun  8 11:21 kube-prometheus-stack-60.0.1.tgz
 
-$ tar -xzvf kube-prometheus-stack-60.0.0.tgz
+# 압축해지
+$ tar -xzvf kube-prometheus-stack-60.0.1.tgz
 
 $ cd ~/helm/charts/kube-prometheus-stack
 
@@ -150,17 +152,28 @@ $ vi values.yaml
 $ kubectl create ns monitoring
 
 
+# 4.217.252.117 IP를 본인VM IP로 변경 필요
+
+
+
+# kube-prometheus-stack 설치
+
 $ helm -n monitoring install prometheus prometheus-community/kube-prometheus-stack \
   --set alertmanager.enabled=false \
   --set grafana.ingress.enabled=true \
-  --set grafana.ingress.hosts[0]=grafana.songedu.duckdns.org \
+  --set grafana.ingress.hosts[0]=grafana.4.217.252.117.nip.io \
   --set prometheus.ingress.enabled=true \
-  --set prometheus.ingress.hosts[0]=prometheus.songedu.duckdns.org \
-  --dry-run=true  > 11.dry-run.yaml
-  
+  --set prometheus.ingress.hosts[0]=prometheus.4.217.252.117.nip.io \
+  --dry-run=true
+
+
+############
+# 실제 설치시는 dry-run 을 제외하고 실행한다.
+
+
 ############
 NAME: prometheus
-LAST DEPLOYED: Fri Jun  7 07:10:51 2024
+LAST DEPLOYED: Sat Jun  8 11:27:08 2024
 NAMESPACE: monitoring
 STATUS: deployed
 REVISION: 1
@@ -170,11 +183,15 @@ kube-prometheus-stack has been installed. Check its status by running:
 
 
 
-
 # 확인
 $ helm -n monitoring ls
 NAME            NAMESPACE       REVISION        UPDATED                                 STATUS          CHART                           APP VERSION
-prometheus      monitoring      1               2024-06-07 07:10:51.800079245 +0000 UTC deployed        kube-prometheus-stack-60.0.0    v0.74.0
+prometheus      monitoring      1               2024-06-08 11:27:08.328981885 +0000 UTC deployed        kube-prometheus-stack-60.0.1    v0.74.0
+
+
+# 삭제시...
+$ helm -n monitoring delete prometheus
+
 
 ```
 
@@ -188,45 +205,53 @@ Helm 차트를 통해 Grafana가 설치되었으므로, 이를 구성하고 접�
 
 
 
-## 1) **Grafana UI 접속**
+## 1) **Prometheus/Grafana  UI 확인**
 
 domain 확인
 
 ```sh
-# Grafana domain 확인
+# domain 확인
 $ kubectl get ingress -n monitoring
-NAME                                    CLASS     HOSTS                            ADDRESS                      PORTS   AGE
-prometheus-grafana                      traefik   grafana.songedu.duckdns.org      10.0.0.4,10.0.0.5,10.0.0.6   80      2m2s
+NAME                                    CLASS     HOSTS                             ADDRESS    PORTS   AGE
+prometheus-kube-prometheus-prometheus   traefik   prometheus.4.217.252.117.nip.io   10.0.0.9   80      46s
+prometheus-grafana                      traefik   grafana.4.217.252.117.nip.io      10.0.0.9   80      46s
 
+
+```
+
+
+
+## 2) **Prometheus/Grafana UI 접속**
+
+domain 확인
+
+```sh
+
+
+http://prometheus.4.217.252.117.nip.io/
+
+
+http://grafana.4.217.252.117.nip.io/
+
+```
+
+
+
+
+
+## 3) **Grafana password 확인**
+
+```sh
 
 # Grafana password 확인
 $ kubectl get secret -n monitoring prometheus-grafana -o jsonpath="{.data.admin-password}" | base64 --decode ; echo
-prom-operator
 
+prom-operator
 
 # ID / PASS
 # admin / prom-operator
 
 ```
-
-
-
-
-
-## 2) **Prometheus UI 접속**
-
-domain 확인
-
-```sh
-$ kubectl get ingress -n monitoring
-NAME                                    CLASS     HOSTS                            ADDRESS                      PORTS   AGE
-prometheus-kube-prometheus-prometheus   traefik   prometheus.songedu.duckdns.org   10.0.0.4,10.0.0.5,10.0.0.6   80      2m2s
-
-```
-
-
-
-
 
 
 
@@ -239,8 +264,8 @@ prometheus-kube-prometheus-prometheus   traefik   prometheus.songedu.duckdns.org
 ## 1) 접속URL
 
 ```
-http://prometheus.songedu.duckdns.org
 
+http://prometheus.4.217.252.117.nip.io/
 ```
 
 
@@ -261,6 +286,8 @@ http://prometheus.songedu.duckdns.org
   - **라벨 및 메트릭 필터링**
     - 각 대상에 적용된 라벨을 통해 메트릭을 필터링하고 구체적인 데이터를 분석
 
+
+
 ## 3) Graph
 
 * Prometheus에서 저장된 매트릭 데이터를 시각화 하여 보여준다.
@@ -279,14 +306,14 @@ up{job="node-exporter"}
 up{job="node-exporter", instance="10.0.0.5:9100"}
 
 
-# node_memory_MemFree 예제
-node_memory_MemFree_bytes
+# container_memory_usage_bytes 예제
+container_memory_usage_bytes
+
 
 # 필터링
-node_memory_MemFree_bytes{instance="10.0.0.5:9100"}
+container_memory_usage_bytes{container="userlist"}
+container_memory_usage_bytes{namespace="kube-system"}
 
-# 5동안의 Rate를 계산하여 보여준다.
-rate(node_memory_MemFree_bytes{instance="10.0.0.5:9100"}[5m])
 
 ```
 
@@ -301,23 +328,16 @@ rate(node_memory_MemFree_bytes{instance="10.0.0.5:9100"}[5m])
 ## 1) 접속URL
 
 ```
-http://grafana.songedu.duckdns.org
+
+http://grafana.4.217.252.117.nip.io/
 
 ```
 
 
 
-## 2) CoreDNS
+## 2) Compute Resource
 
-* 메뉴 : Home > Dashboards > 
-* CoreDNSCoreDNS는 Kubernetes의 기본 DNS 서버로, 클러스터 내 서비스 디스커버리 및 DNS 이름 해석을 담당
-* 클러스터의 안정성과 네트워크 성능을 확인하기 위해 CoreDNS의 성능과 상태를 모니터링 수행
-
-![image-20240607172013854](./K8sMonitoring.assets/image-20240607172013854.png)
-
-
-
-## 3) Namespace (Pods)
+### (1) Namespace (Pods)
 
 * 메뉴 : Home > Dashboards > Kubernetes / Compute Resources / Namespace (Pods)
 * POD 별 리소스(CPU/Memory)의 사용량을 확인 가능
@@ -325,11 +345,13 @@ http://grafana.songedu.duckdns.org
 
 ![image-20240607170545283](./K8sMonitoring.assets/image-20240607170545283.png)
 
+* 본 매트릭 지표는 Prometheus 에서 지표를 집계하는 단위가 기준으로 그래프를 보여준다.
+* 일반적으로 집계는 30초에서 1분단위로 집계를 한다.
+* 그러므로 순간적으로 매트릭이 치솟는 경우는 집계내역에서 놓칠 수 있음을 고려해야 한다. 
 
 
 
-
-## 4) Namespace (Workloads)
+### (2) Namespace (Workloads)
 
 * 메뉴 : Home > Dashboards > Kubernetes / Compute Resources / Namespace (Pods)
 * Workloads 별 리소스(CPU/Memory)의 사용량을 확인 가능
@@ -341,7 +363,9 @@ http://grafana.songedu.duckdns.org
 
 
 
-## 5) Nodes
+## 3) Node Exporter
+
+### (1) Nodes
 
 * 메뉴 : Home > Dashboards > Node Exporter / Nodes
 * Node별 CPU, Memory, Disk 사용량을 확인한다.
@@ -352,6 +376,23 @@ http://grafana.songedu.duckdns.org
 * 이때 Node상태를 확인하는 중요한 모니터링이 된다.
 
 
+
+### (2) Cluster
+
+* 메뉴 : Home > Dashboards > Node Exporter / USE Method / Cluster
+* Cluster 전체 관점에서 리소스(CPU, Memory, Disk) 사용량을 확인한다.
+
+
+
+
+
+## 4) CoreDNS
+
+* 메뉴 : Home > Dashboards > 
+* CoreDNSCoreDNS는 Kubernetes의 기본 DNS 서버로, 클러스터 내 서비스 디스커버리 및 DNS 이름 해석을 담당
+* 클러스터의 안정성과 네트워크 성능을 확인하기 위해 CoreDNS의 성능과 상태를 모니터링 수행
+
+![image-20240607172013854](./K8sMonitoring.assets/image-20240607172013854.png)
 
 
 

@@ -797,11 +797,7 @@ remote 로 변경시 cluster.id 2 에 preferred 로 선언되었다.   그러므
 
 Service list 가 사실상 routing 역할을 수행한다.
 
-
-
 userlist 라는 sample app 을 통해서 멀티 클러스터를 구성해 보았다.
-
-
 
 
 
