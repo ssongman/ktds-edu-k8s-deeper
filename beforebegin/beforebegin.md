@@ -16,9 +16,10 @@ CMD / PowerShell / putty 와 같은 기본 터미널을 이용해도 되지만 �
 
 
 
-* download 위치
+- download 위치
   - 링크: https://download.mobatek.net/2312023031823706/MobaXterm_Installer_v23.1.zip
-* mobaxterm 실행
+
+- mobaxterm 실행
 
 ![image-20220601194018844](beforebegin.assets/image-20220601194018844.png)
 
@@ -26,7 +27,7 @@ CMD / PowerShell / putty 와 같은 기본 터미널을 이용해도 되지만 �
 
 
 
-# 2) gitbash 설치
+## 2) gitbash 설치
 
 교육문서를 다운로드 받으려면 Git Command 가 필요하다. Windows 에서는 기본 제공되지 않아 별도 설치 해야 한다.
 
@@ -45,12 +46,14 @@ github site 를 직접 확인해도 되긴 하지만 각종 실습 자료를 직
 
 
 
-* 
+### (1) Typora 설치
 
 - 참고
   - 링크: https://typora.io/
+
 - download 위치
   - 다운로드주소 : https://download.typora.io/windows/typora-setup-x64.exe
+
 - Typora 실행
 
 
@@ -59,10 +62,11 @@ github site 를 직접 확인해도 되긴 하지만 각종 실습 자료를 직
 
 원할한 실습을 위해 코드펜스 옵션을 아래와 같이 변경하자.
 
-* 코드펜스 설정
+- 코드펜스 설정
   - 메뉴 : 파일 > 환경설정 > 마크다운 > 코드펜스
     - 코드펜스에서 줄번호 보이기 - check
     - 긴문장 자동 줄바꿈 : uncheck
+
 
 
 
@@ -71,6 +75,7 @@ github site 를 직접 확인해도 되긴 하지만 각종 실습 자료를 직
 - 개요보기 설정
   - 메뉴 : 보기 > 개요
     - 개요 : check
+
 
 
 
@@ -86,60 +91,37 @@ github site 를 직접 확인해도 되긴 하지만 각종 실습 자료를 직
 
 gitbash 실행후 command 명령어로 아래와 같이 디렉토리를 생성후 git clone 으로 download 하자.
 
-# sh
-1
+```sh
 ## githubrepo directory 생성
-2
 $ mkdir -p /c/githubrepo
-3
-​
-4
+
 $ cd /c/githubrepo
-5
-​
-6
+
 $ git clone https://github.com/ssongman/ktds-edu-k8s-deeper.git
-7
 Cloning into 'ktds-edu-k8s-deeper'...
-8
 remote: Enumerating objects: 597, done.
-9
 remote: Counting objects: 100% (32/32), done.
-10
 remote: Compressing objects: 100% (12/12), done.
-11
 remote: Total 597 (delta 22), reused 28 (delta 20), pack-reused 565
-12
 Receiving objects: 100% (597/597), 3.85 MiB | 9.97 MiB/s, done.
-13
 Resolving deltas: 100% (326/326), done.
-14
-​
-15
-​
-16
-​
-17
+
+
+
 $ ll /c/githubrepo
-18
 drwxr-xr-x 1 송양종 197121 0 Jun  6 11:06 ktds-edu-k8s-deeper/
-19
-​
-#
+
+```
 
 
 
 만약 교육중 자료가 변경(오타 변경 등의 사유로) 되어 다시 받아야 하는 경우 가 있을 경우 해당 위치에서 git pull 만 다시 받도록 하자.
 
 ```sh
-1
 $ cd /c/githubrepo/ktds-edu-k8s-deeper
-2
-​
-3
+
 $ git pull
-4
-​
+
 ```
 
 
@@ -153,12 +135,10 @@ $ git pull
 - typora 로 오픈
   - 파일열기(Ctrl + O)  후 아래 파일 오픈
 
+
 ```
-1
 ## typora 에서 아래 파일 오픈
-2
-​
-3
+
 C:\githubrepo\ktds-edu-k8s-deeper\README.md
 ```
 
@@ -174,8 +154,7 @@ C:\githubrepo\ktds-edu-k8s-deeper\README.md
 
 
 
-
-# 1) 개인 VM 서버 주소 확인- ★
+## 1) 개인 VM 서버 주소 확인- ★
 
 원할한 실습을 위해서 개인별 한개씩 VM 이 할당되어 있다.  해당 노드에 kubernetes 를 설치 및 다양한 실습을 진행할 것이다.
 
@@ -231,6 +210,7 @@ Mobaxterm 을 실행하여 VM 접속정보를 위한 신규 session 을 생성�
 
 - 메뉴
   - session  : 상단 좌측아이콘 클릭
+
   - SSH : 팝업창 상단 아이콘 클릭
 
 
@@ -246,11 +226,14 @@ Mobaxterm 을 실행하여 VM 접속정보를 위한 신규 session 을 생성�
 - Romote host
   - 개인별로 접근 주소가 다르므로 위 수강생별  VM  Server IP 주소를 확인하자.
   - ex)  bastion03 : 4.217.xxx.117  (각자 자신 VM IP 를 입력해야 함)
+
 - User
   - Specify username 에 Check
   - User : ktdseduuser입력
     - Password 는 별도 공지
+  
 - Port : 22
+
 
 
 
