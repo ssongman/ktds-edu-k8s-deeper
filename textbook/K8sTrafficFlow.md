@@ -67,7 +67,10 @@ $ sudo -s
 
 
 # k3s 설치
-$ curl -sfL https://get.k3s.io | sh -s - --write-kubeconfig-mode 644
+$ curl -sfL https://get.k3s.io | sh -s - server \
+    --write-kubeconfig-mode 644 \
+    --cluster-cidr 10.11.0.0/16 \
+    --service-cidr 10.12.0.0/16
 
 
 [INFO]  Finding release for channel stable

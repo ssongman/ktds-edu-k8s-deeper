@@ -188,7 +188,190 @@ Cilium 활용하여 멀티 클러스터를 구성하는 방법에 대해서 살�
 
 
 
-## 1) Cilium cli install
+
+
+## 1) k3s Install
+
+멀티클러스틀 구성하기 위해서는 2개의 Cluster 가 필요하다.  
+
+Cilium 라는 CNI 를 설치 할 것이므로 k3s 설치시 flannel-backend=none옵션 으로 설치 해야 한다.
+
+만약  k3s 가 기존에 설치되어 있다면 모두 삭제하고 다시 설치를 진행한다.
+
+
+
+### (1) 2개의 k3s install
+
+```sh
+
+# 첫번째 Cluster
+curl -sfL https://get.k3s.io | sh -s - server \
+    --write-kubeconfig-mode 644 \
+    --flannel-backend=none \
+    --disable-network-policy \
+    --cluster-cidr 10.11.0.0/16 \
+    --service-cidr 10.12.0.0/16 
+
+
+
+
+# 두번째 Cluster
+curl -sfL https://get.k3s.io | sh -s - server \
+    --write-kubeconfig-mode 644 \
+    --flannel-backend=none \
+    --disable-network-policy \
+    --cluster-cidr 10.21.0.0/16 \
+    --service-cidr 10.22.0.0/16
+    
+
+```
+
+
+
+### (2) kubeconfig 설정
+
+```sh
+## 일반 user 권한으로 실행   <-- 중요 ★★★
+
+$ mkdir -p ~/.kube
+
+$ cp /etc/rancher/k3s/k3s.yaml ~/.kube/config
+
+$ chmod 600 ~/.kube/config
+
+$ kubectl version
+Client Version: v1.30.1
+Kustomize Version: v5.0.4-0.20230601165947-6ce0bf390ce3
+Server Version: v1.29.5+k3s1
+
+```
+
+
+
+### (3) [참고] k3s 삭제
+
+삭제가 필요할때만 참고한다.
+
+```sh
+# root 권한으로
+$ sudo -s
+
+## k3s 삭제
+$ sh /usr/local/bin/k3s-killall.sh
+  sh /usr/local/bin/k3s-uninstall.sh
+
+
+# 확인1
+$ ps -ef|grep k3s
+
+# 확인
+$ systemctl status k3s
+
+
+# 사용자 권한으로
+$ eixt
+```
+
+
+
+### (4) 다중 클러스터 접근 구성
+
+멀티 클러스터를 구성하기 위해서는 각 클러스터를 접속할 수 있는 환경과 다수의 클러스터에 접근할 수 있도록 설정한다. 
+
+아래는 bastions02 클러스터와 bastion03 클러스터에 각각 접근하는 Context 와 일괄로 셋팅한 Context 를 보여준다.
+
+```yaml
+
+# bastion05
+$ cat > ~/.kube/cluster1-config
+---
+apiVersion: v1
+clusters:
+- cluster:
+    certificate-authority-data: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUJlRENDQVIyZ0F3SUJBZ0lCQURBS0JnZ3Foa2pPUFFRREFqQWpNU0V3SHdZRFZRUUREQmhyTTNNdGMyVnkKZG1WeUxXTmhRREUzTVRnd01qazVOakF3SGhjTk1qUXdOakV3TVRRek1qUXdXaGNOTXpRd05qQTRNVFF6TWpRdwpXakFqTVNFd0h3WURWUVFEREJock0zTXRjMlZ5ZG1WeUxXTmhRREUzTVRnd01qazVOakF3V1RBVEJnY3Foa2pPClBRSUJCZ2dxaGtqT1BRTUJCd05DQUFTNWJzWlpHMlFNY0wwUDV1UUdNTUZjWlk1UWN6SVVFMzFZcmppVGZnbHYKMFZNWnhPWDA3WTZwdlVuV0ZNWnU0cHBKeVFYc1haYUtYQlQrZHEySjIrZllvMEl3UURBT0JnTlZIUThCQWY4RQpCQU1DQXFRd0R3WURWUjBUQVFIL0JBVXdBd0VCL3pBZEJnTlZIUTRFRmdRVVBFLzVUU20veVc4VnFaZThKNFVKCkloNHQ5ak13Q2dZSUtvWkl6ajBFQXdJRFNRQXdSZ0loQUwzVDgzZmQ1WnM1U0ovOGtxQVcvSnIrcnNrMncza1YKYzI2TjdlV29lTnV0QWlFQW9kZ1ZJd2FBZWhKYklxVElMMGVPTjZGMXNpY28zVUVlVG1wbmJjSjNKY289Ci0tLS0tRU5EIENFUlRJRklDQVRFLS0tLS0K
+    server: https://10.0.0.11:6443
+  name: bastion05
+contexts:
+- context:
+    cluster: bastion05
+    user: bastion05
+  name: bastion05
+current-context: bastion05
+kind: Config
+preferences: {}
+users:
+- name: bastion05
+  user:
+    client-certificate-data: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUJrVENDQVRlZ0F3SUJBZ0lJWnRNYkFFZFl1bmd3Q2dZSUtvWkl6ajBFQXdJd0l6RWhNQjhHQTFVRUF3d1kKYXpOekxXTnNhV1Z1ZEMxallVQXhOekU0TURJNU9UWXdNQjRYRFRJME1EWXhNREUwTXpJME1Gb1hEVEkxTURZeApNREUwTXpJME1Gb3dNREVYTUJVR0ExVUVDaE1PYzNsemRHVnRPbTFoYzNSbGNuTXhGVEFUQmdOVkJBTVRESE41CmMzUmxiVHBoWkcxcGJqQlpNQk1HQnlxR1NNNDlBZ0VHQ0NxR1NNNDlBd0VIQTBJQUJPeVNKd2I0ZUI0ejB4SEwKT1lhcmhsZ2p5WEtlRktUWXg1OHJuM1VvUmh0RDdVRm5aNDBRQ0czM3lQNWM1WnJWaC9qNU1ic3d2R2NjdlBJNQpPVjE3L0NhalNEQkdNQTRHQTFVZER3RUIvd1FFQXdJRm9EQVRCZ05WSFNVRUREQUtCZ2dyQmdFRkJRY0RBakFmCkJnTlZIU01FR0RBV2dCUWZtSVpCSVNtZkhWUHc4K3lmUDh2WVRHYkZzekFLQmdncWhrak9QUVFEQWdOSUFEQkYKQWlBaUgrWDF2SUdqM1EyeUNqc1A1WWtBRXBwQm1ja00xM0MwaDJHVWYyUndrQUloQVAxbjM4S2ZzdVRHSi8yTgpHdURrY3ZRTUw2WWZFa1BFVkhoRnljNWRjWUJtCi0tLS0tRU5EIENFUlRJRklDQVRFLS0tLS0KLS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUJkekNDQVIyZ0F3SUJBZ0lCQURBS0JnZ3Foa2pPUFFRREFqQWpNU0V3SHdZRFZRUUREQmhyTTNNdFkyeHAKWlc1MExXTmhRREUzTVRnd01qazVOakF3SGhjTk1qUXdOakV3TVRRek1qUXdXaGNOTXpRd05qQTRNVFF6TWpRdwpXakFqTVNFd0h3WURWUVFEREJock0zTXRZMnhwWlc1MExXTmhRREUzTVRnd01qazVOakF3V1RBVEJnY3Foa2pPClBRSUJCZ2dxaGtqT1BRTUJCd05DQUFTcEkwczZkaWdlZG9mdjAwT3JLMGtnRjhmNFNGbE5wNFh4aVl1U1laaXMKL3Q4d2w5cGd3UjhXNEQxemZnTVBiQmZtZlRzRmxWL21hdzFINEpmb2drZ2JvMEl3UURBT0JnTlZIUThCQWY4RQpCQU1DQXFRd0R3WURWUjBUQVFIL0JBVXdBd0VCL3pBZEJnTlZIUTRFRmdRVUg1aUdRU0VwbngxVDhQUHNuei9MCjJFeG14Yk13Q2dZSUtvWkl6ajBFQXdJRFNBQXdSUUlnUXpzRXp1VUxlcHUvTWZLOHRlMHp4Yk9rNFB0UVdYVmQKVjNXVEY1Wk9vakFDSVFDc2dwOXFRZEFCcEVMeTNHOFJpb3VwUk1tS0RkdERCc3phSENEQzhZaHFmUT09Ci0tLS0tRU5EIENFUlRJRklDQVRFLS0tLS0K
+    client-key-data: LS0tLS1CRUdJTiBFQyBQUklWQVRFIEtFWS0tLS0tCk1IY0NBUUVFSUxiVit5UEgwb3d3Zis3cWpWa0lvTWlLVCt2d1hSMjRQUlBEL2UxQUdPdmxvQW9HQ0NxR1NNNDkKQXdFSG9VUURRZ0FFN0pJbkJ2aDRIalBURWNzNWhxdUdXQ1BKY3A0VXBOakhueXVmZFNoR0cwUHRRV2RualJBSQpiZmZJL2x6bG10V0grUGt4dXpDOFp4eTg4ams1WFh2OEpnPT0KLS0tLS1FTkQgRUMgUFJJVkFURSBLRVktLS0tLQo=
+
+---
+
+
+# bastion06
+$ cat > ~/.kube/cluster2-config
+---
+apiVersion: v1
+clusters:
+- cluster:
+    certificate-authority-data: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUJlRENDQVIyZ0F3SUJBZ0lCQURBS0JnZ3Foa2pPUFFRREFqQWpNU0V3SHdZRFZRUUREQmhyTTNNdGMyVnkKZG1WeUxXTmhRREUzTVRnd016QTFNakl3SGhjTk1qUXdOakV3TVRRME1qQXlXaGNOTXpRd05qQTRNVFEwTWpBeQpXakFqTVNFd0h3WURWUVFEREJock0zTXRjMlZ5ZG1WeUxXTmhRREUzTVRnd016QTFNakl3V1RBVEJnY3Foa2pPClBRSUJCZ2dxaGtqT1BRTUJCd05DQUFUUnRsaFRub2dmOVl0Sk5PbXk2K1ExQ0ZPR0s0MXFvU21rbDByM2RHOFAKSmFHVHJ6bEFrUEJYUE13cTN4NmRqWlJoUWFMZHdNUWtXNWd4Yk1URnU2b1JvMEl3UURBT0JnTlZIUThCQWY4RQpCQU1DQXFRd0R3WURWUjBUQVFIL0JBVXdBd0VCL3pBZEJnTlZIUTRFRmdRVTl0OHJmZ2QvYVJUZlA0VmxneWpRClhrS3ZEaDB3Q2dZSUtvWkl6ajBFQXdJRFNRQXdSZ0loQUlsTlhlZXk4Snc0c3ZDd2I4cUF5d1JCMys5cHR6YzkKRlBhSnFYcWEyWk1QQWlFQStzeHN5Y0NOMUh5SldzMEkwM0l0YS9MTkxraGRzQzdLYmxDQ0ZTTzVxcVk9Ci0tLS0tRU5EIENFUlRJRklDQVRFLS0tLS0K
+    server: https://10.0.0.12:6443
+  name: bastion06
+contexts:
+- context:
+    cluster: bastion06
+    user: bastion06
+  name: bastion06
+current-context: bastion06
+kind: Config
+preferences: {}
+users:
+- name: bastion06
+  user:
+    client-certificate-data: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUJrakNDQVRlZ0F3SUJBZ0lJT0M1bTBtVlk2aFF3Q2dZSUtvWkl6ajBFQXdJd0l6RWhNQjhHQTFVRUF3d1kKYXpOekxXTnNhV1Z1ZEMxallVQXhOekU0TURNd05USXlNQjRYRFRJME1EWXhNREUwTkRJd01sb1hEVEkxTURZeApNREUwTkRJd01sb3dNREVYTUJVR0ExVUVDaE1PYzNsemRHVnRPbTFoYzNSbGNuTXhGVEFUQmdOVkJBTVRESE41CmMzUmxiVHBoWkcxcGJqQlpNQk1HQnlxR1NNNDlBZ0VHQ0NxR1NNNDlBd0VIQTBJQUJGMmgwcFNyR3dZRzVPZlgKTDMzc0VxM2lsdlV0c0hReC82WDZxaWx2ZnhZN1lRQlFSbEhuYkVMckwyRGRKR3BxNDEwWWkydXJFYXEzMUQ2YgpLVlZqRnZlalNEQkdNQTRHQTFVZER3RUIvd1FFQXdJRm9EQVRCZ05WSFNVRUREQUtCZ2dyQmdFRkJRY0RBakFmCkJnTlZIU01FR0RBV2dCVEtPaG1QbG5ZSjNybFJzWVdRR0hqb05EaGNLVEFLQmdncWhrak9QUVFEQWdOSkFEQkcKQWlFQXc4cEthWEdCcE1GSGk5NVVKOEtnWW9VdjBrSVVMalUxWDZKTTdqa3k4V3NDSVFDYStzWnB0dEYra1I5eApaVnJxOXd5VXFMcU02Q0xZWUJoMGM3bTJhU1BGNnc9PQotLS0tLUVORCBDRVJUSUZJQ0FURS0tLS0tCi0tLS0tQkVHSU4gQ0VSVElGSUNBVEUtLS0tLQpNSUlCZHpDQ0FSMmdBd0lCQWdJQkFEQUtCZ2dxaGtqT1BRUURBakFqTVNFd0h3WURWUVFEREJock0zTXRZMnhwClpXNTBMV05oUURFM01UZ3dNekExTWpJd0hoY05NalF3TmpFd01UUTBNakF5V2hjTk16UXdOakE0TVRRME1qQXkKV2pBak1TRXdId1lEVlFRRERCaHJNM010WTJ4cFpXNTBMV05oUURFM01UZ3dNekExTWpJd1dUQVRCZ2NxaGtqTwpQUUlCQmdncWhrak9QUU1CQndOQ0FBUmt0WkZPak84S09BeEhlWStVZmxMTzNaUjJFSWdvZCt0ejQ2SUczVnRWCkJ2bS9JUkdsM1M0ODRoUGxpdmo3Q3FqaHRucVBuZW1SL3R1SFFTbEJoS29NbzBJd1FEQU9CZ05WSFE4QkFmOEUKQkFNQ0FxUXdEd1lEVlIwVEFRSC9CQVV3QXdFQi96QWRCZ05WSFE0RUZnUVV5am9aajVaMkNkNjVVYkdGa0JoNAo2RFE0WENrd0NnWUlLb1pJemowRUF3SURTQUF3UlFJaEFLUTk0b0QyV3g0a2RyeVgwUnBONnh0WmVDcmlTVzRtCnlINE1Bdm9oaU02d0FpQkVjVmRwc0pGYTNLMlBlL2RsT0Y4MHFEak9oWk5tL09DYy93aXFPZ1RINkE9PQotLS0tLUVORCBDRVJUSUZJQ0FURS0tLS0tCg==
+    client-key-data: LS0tLS1CRUdJTiBFQyBQUklWQVRFIEtFWS0tLS0tCk1IY0NBUUVFSU91R1prSUo5TVkzQit2SnRZcWJaUDlKTi9RN2pOSzJrNmE3d2xpTWZHanVvQW9HQ0NxR1NNNDkKQXdFSG9VUURRZ0FFWGFIU2xLc2JCZ2JrNTljdmZld1NyZUtXOVMyd2RESC9wZnFxS1c5L0ZqdGhBRkJHVWVkcwpRdXN2WU4wa2FtcmpYUmlMYTZzUnFyZlVQcHNwVldNVzl3PT0KLS0tLS1FTkQgRUMgUFJJVkFURSBLRVktLS0tLQo=
+
+---
+
+
+# 병합
+export KUBECONFIG=~/.kube/cluster1-config:~/.kube/cluster2-config
+kubectl config view --merge --flatten > ~/.kube/config-multi
+```
+
+kubernetes  공식 Document site 를 참고하자.
+
+참고링크 : https://kubernetes.io/docs/tasks/access-application-cluster/configure-access-multiple-clusters/
+
+
+
+현재 사용하고자 하는 kubeconfig 파일을 정의 한다. 
+
+특정 클러스터에 접근하기 위해서 아래와 같이 환경변수를 설정한다.
+
+```sh
+# multi kubeconfig 적용
+
+$ export KUBECONFIG="${HOME}/.kube/config-multi"
+  export CLUSTER1=bastion05
+  export CLUSTER2=bastion06
+
+
+# 확인
+
+$ kubectl --context $CLUSTER1 -n kube-system get svc
+
+$ kubectl --context $CLUSTER2 -n kube-system get svc
+
+```
+
+
+
+
+
+
+
+## 2) Cilium cli install
 
 Cilium 을 설정하기 위해서는 먼저 CLI tool 을 먼저 설치해야 한다.  클러스터에 접근 가능한 위치에서 아래와 같이 CLI tool 을 다운로드 받아 설치하자.
 
@@ -197,7 +380,6 @@ $ mkdir -p ~/song/cilium
   cd ~/song/cilium
 
 $ CILIUM_CLI_VERSION=$(curl -s https://raw.githubusercontent.com/cilium/cilium-cli/main/stable.txt)
-
 
 $ echo $CILIUM_CLI_VERSION
 v0.16.10
@@ -227,136 +409,6 @@ cilium image (stable): v1.15.5
 
 
 
-## 2) 다중 클러스터 접근 구성
-
-멀티 클러스터를 구성하기 위해서는 각 클러스터를 접속할 수 있는 환경과 다수의 클러스터에 접근할 수 있도록 설정한다. 
-
-아래는 bastions02 클러스터와 bastion03 클러스터에 각각 접근하는 Context 와 일괄로 셋팅한 Context 를 보여준다.
-
-```yaml
-# bastion04
-$ cat ~/.kube/config
-apiVersion: v1
-clusters:
-- cluster:
-    certificate-authority-data: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUJkakNDQVIyZ0F3SUJBZ0lCQURBS0JnZ3Foa2pPUFFRREFqQWpNU0V3SHdZRFZRUUREQmhyTTNNdGMyVnkKZG1WeUxXTmhRREUzTVRjNU5EWXlPRFF3SGhjTk1qUXdOakE1TVRVeE9EQTBXaGNOTXpRd05qQTNNVFV4T0RBMApXakFqTVNFd0h3WURWUVFEREJock0zTXRjMlZ5ZG1WeUxXTmhRREUzTVRjNU5EWXlPRFF3V1RBVEJnY3Foa2pPClBRSUJCZ2dxaGtqT1BRTUJCd05DQUFUOVI4akk5eXVhYTM5SFpwNU5oWnovM2duY1VZQ2RTa2FIYXNzMysrOHMKQlFSYnFKbllnMXNLS2Exb3BqalVZK2o3YklUU0NNK205L1F4ZWc2eEF3QS9vMEl3UURBT0JnTlZIUThCQWY4RQpCQU1DQXFRd0R3WURWUjBUQVFIL0JBVXdBd0VCL3pBZEJnTlZIUTRFRmdRVVQ5Vi9VYU92a2toNUllVTVWSjB4CnNMWXpOdkV3Q2dZSUtvWkl6ajBFQXdJRFJ3QXdSQUlnU2lJRlAwbERBNWpxQVFOSVIrRFRlbVh4SDNYUkpYak0KNjRyK2NDbjNDQkFDSURsTW1qVll3MThSc2F3b2tlVEllUmpHKzc5K1dPZ0tzbFhBY3B1dUF3NWMKLS0tLS1FTkQgQ0VSVElGSUNBVEUtLS0tLQo=
-    server: https://10.0.0.13:6443
-  name: bastion04
-contexts:
-- context:
-    cluster: bastion04
-    user: bastion04
-  name: bastion04
-current-context: bastion04
-kind: Config
-preferences: {}
-users:
-- name: bastion04
-  user:
-    client-certificate-data: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUJrRENDQVRlZ0F3SUJBZ0lJUHd4c3FhZ2s0SlV3Q2dZSUtvWkl6ajBFQXdJd0l6RWhNQjhHQTFVRUF3d1kKYXpOekxXTnNhV1Z1ZEMxallVQXhOekUzT1RRMk1qZzBNQjRYRFRJME1EWXdPVEUxTVRnd05Gb1hEVEkxTURZdwpPVEUxTVRnd05Gb3dNREVYTUJVR0ExVUVDaE1PYzNsemRHVnRPbTFoYzNSbGNuTXhGVEFUQmdOVkJBTVRESE41CmMzUmxiVHBoWkcxcGJqQlpNQk1HQnlxR1NNNDlBZ0VHQ0NxR1NNNDlBd0VIQTBJQUJIL2hReDhBWGlsam1MRVYKSGwvaGUzY2hJQjJTN2RpZGdCYXo3NXBlZ0hCKzltaFZmS29SeXB1WmlxMnlSRjVYVGQwdGVkMjBCTnFjNW15bApUamF3Q0xlalNEQkdNQTRHQTFVZER3RUIvd1FFQXdJRm9EQVRCZ05WSFNVRUREQUtCZ2dyQmdFRkJRY0RBakFmCkJnTlZIU01FR0RBV2dCUmNBQ0x3QXJJNktkaERJT1I2UmkrVVJiWE44VEFLQmdncWhrak9QUVFEQWdOSEFEQkUKQWlBZ0RWTWUrVFlPemdXUk9xRUUzQ0tqUXd0Rzlod3E3ZEZOcUZEWHR4b2J3UUlnVWEvRzlSMVdhaEs0dmc0cwp3WDQxTGxXRmFlbERLeVJwTTdsZWhKZmFDQ3c9Ci0tLS0tRU5EIENFUlRJRklDQVRFLS0tLS0KLS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUJkekNDQVIyZ0F3SUJBZ0lCQURBS0JnZ3Foa2pPUFFRREFqQWpNU0V3SHdZRFZRUUREQmhyTTNNdFkyeHAKWlc1MExXTmhRREUzTVRjNU5EWXlPRFF3SGhjTk1qUXdOakE1TVRVeE9EQTBXaGNOTXpRd05qQTNNVFV4T0RBMApXakFqTVNFd0h3WURWUVFEREJock0zTXRZMnhwWlc1MExXTmhRREUzTVRjNU5EWXlPRFF3V1RBVEJnY3Foa2pPClBRSUJCZ2dxaGtqT1BRTUJCd05DQUFTRWJrbTJZQnRRZXNQSk1jTWpITVhORjFITE9iRTZuMUJaNExzajN1bjIKT1lnNkd0bEVoMVcxRERBblRtVFFwMGxvNHVNMmJEdUJkK3JSK1JHZjBuTUdvMEl3UURBT0JnTlZIUThCQWY4RQpCQU1DQXFRd0R3WURWUjBUQVFIL0JBVXdBd0VCL3pBZEJnTlZIUTRFRmdRVVhBQWk4QUt5T2luWVF5RGtla1l2CmxFVzF6ZkV3Q2dZSUtvWkl6ajBFQXdJRFNBQXdSUUlnTXFPTnphc3lKMmRIakFRWnk0L3M4akNyOU5qT1h2dnUKMEtyc1hIVzdpYU1DSVFERnJVelNHNGpIMFZJUnpyUkgza0k2ZFJNQVFLNUlhbEEyekdqa1ZFL3hvdz09Ci0tLS0tRU5EIENFUlRJRklDQVRFLS0tLS0K
-    client-key-data: LS0tLS1CRUdJTiBFQyBQUklWQVRFIEtFWS0tLS0tCk1IY0NBUUVFSURmZUhFa1RxYkFhR0l6RlhXc2hCV1VPbUxNZnJVRkVudmg1bXB3ZXk0SlFvQW9HQ0NxR1NNNDkKQXdFSG9VUURRZ0FFZitGREh3QmVLV09Zc1JVZVgrRjdkeUVnSFpMdDJKMkFGclB2bWw2QWNINzJhRlY4cWhISwptNW1LcmJKRVhsZE4zUzE1M2JRRTJwem1iS1ZPTnJBSXR3PT0KLS0tLS1FTkQgRUMgUFJJVkFURSBLRVktLS0tLQo=
-
----
-
-
-# bastion05
-$ cat ~/.kube/config
-apiVersion: v1
-clusters:
-- cluster:
-    certificate-authority-data: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUJkekNDQVIyZ0F3SUJBZ0lCQURBS0JnZ3Foa2pPUFFRREFqQWpNU0V3SHdZRFZRUUREQmhyTTNNdGMyVnkKZG1WeUxXTmhRREUzTVRjNU5EWXlPVFl3SGhjTk1qUXdOakE1TVRVeE9ERTJXaGNOTXpRd05qQTNNVFV4T0RFMgpXakFqTVNFd0h3WURWUVFEREJock0zTXRjMlZ5ZG1WeUxXTmhRREUzTVRjNU5EWXlPVFl3V1RBVEJnY3Foa2pPClBRSUJCZ2dxaGtqT1BRTUJCd05DQUFRRnBhU1g0d1ZHWUxnQzdsRnl4emFYV2RCSUF4cjFHRTlYQ0ZIeTJDU00KSHBBVTFSVmR4RUVXV05rVEJNeU9OakRESEJSeUxJczdLWTlRSjBQdVp1ZjhvMEl3UURBT0JnTlZIUThCQWY4RQpCQU1DQXFRd0R3WURWUjBUQVFIL0JBVXdBd0VCL3pBZEJnTlZIUTRFRmdRVTJvdXoyUGdoOHBpMnlHdDMwQVBvCkVHM0lyOWd3Q2dZSUtvWkl6ajBFQXdJRFNBQXdSUUlnUVA5TnN3bWlCd25mT2RpS3FoaHNEaWUxdHJrajZDL2oKNzd1WmFmN2JpUnNDSVFDcFJOQnNyaTZ5MFVnczVNS0crcW5vRVU5WWpoeTIvWG5IRWdWenlodDRNdz09Ci0tLS0tRU5EIENFUlRJRklDQVRFLS0tLS0K
-    server: https://10.0.0.12:6443
-  name: bastion05
-contexts:
-- context:
-    cluster: bastion05
-    user: bastion05
-  name: bastion05
-current-context: bastion05
-kind: Config
-preferences: {}
-users:
-- name: bastion05
-  user:
-    client-certificate-data: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUJrVENDQVRlZ0F3SUJBZ0lJQ2FzZmRxQ3R3eFF3Q2dZSUtvWkl6ajBFQXdJd0l6RWhNQjhHQTFVRUF3d1kKYXpOekxXTnNhV1Z1ZEMxallVQXhOekUzT1RRMk1qazJNQjRYRFRJME1EWXdPVEUxTVRneE5sb1hEVEkxTURZdwpPVEUxTVRneE5sb3dNREVYTUJVR0ExVUVDaE1PYzNsemRHVnRPbTFoYzNSbGNuTXhGVEFUQmdOVkJBTVRESE41CmMzUmxiVHBoWkcxcGJqQlpNQk1HQnlxR1NNNDlBZ0VHQ0NxR1NNNDlBd0VIQTBJQUJIcXMydXZNbXlFUnArM1oKWHlhUFVQVEM0WWdGUVBOLzB2VUU1Umk5S1pMenE3Zm5kOWxkNXFCRjR1Tk1sQUt3U1VoeHh1dTNYbVRLWm9JQwpnL084ZDRDalNEQkdNQTRHQTFVZER3RUIvd1FFQXdJRm9EQVRCZ05WSFNVRUREQUtCZ2dyQmdFRkJRY0RBakFmCkJnTlZIU01FR0RBV2dCUXRhdEpVcklLVUswaldTWHY5WXNwT1h5RjFIakFLQmdncWhrak9QUVFEQWdOSUFEQkYKQWlCZXpnK0dtWm1oNit4YWN4RjEzUlEydmxxS1hnS3UzakxTNXBwMDVzeWVrd0loQU1IOVdWSmNqYzFZL0szbgpVMkJ0cVBqS3pudUxpdTJ1azFuUlY4Q1FWYzcyCi0tLS0tRU5EIENFUlRJRklDQVRFLS0tLS0KLS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUJkekNDQVIyZ0F3SUJBZ0lCQURBS0JnZ3Foa2pPUFFRREFqQWpNU0V3SHdZRFZRUUREQmhyTTNNdFkyeHAKWlc1MExXTmhRREUzTVRjNU5EWXlPVFl3SGhjTk1qUXdOakE1TVRVeE9ERTJXaGNOTXpRd05qQTNNVFV4T0RFMgpXakFqTVNFd0h3WURWUVFEREJock0zTXRZMnhwWlc1MExXTmhRREUzTVRjNU5EWXlPVFl3V1RBVEJnY3Foa2pPClBRSUJCZ2dxaGtqT1BRTUJCd05DQUFSKzMrU0lZdEZ3Rit6OFpwT3lzdUE3OWF4QmZHbHBOQ1IrckVNcndUZ3EKeUg2NmRCMWJnWXduM1VMRTFsQmd0Q2ZQQWFMc1VkMzEvVGFuUkxUS09VSzNvMEl3UURBT0JnTlZIUThCQWY4RQpCQU1DQXFRd0R3WURWUjBUQVFIL0JBVXdBd0VCL3pBZEJnTlZIUTRFRmdRVUxXclNWS3lDbEN0STFrbDcvV0xLClRsOGhkUjR3Q2dZSUtvWkl6ajBFQXdJRFNBQXdSUUloQUo1anIyV1JHVHZmaDBnUjM4ZWxIcUkrZVlMSTV1ai8KSm8yckxyNkJXZ3JlQWlCeWM4Uy9VcmRHckp3M1BlM1RkWm9TOEhZRVJxT3plTkJHcVBJbjNvekpNZz09Ci0tLS0tRU5EIENFUlRJRklDQVRFLS0tLS0K
-    client-key-data: LS0tLS1CRUdJTiBFQyBQUklWQVRFIEtFWS0tLS0tCk1IY0NBUUVFSUFibnE0S0VxaVR4b25NWTl5bGFoNDlqc2YxclpZNFB4Z1JUN2U0TWc4NlFvQW9HQ0NxR1NNNDkKQXdFSG9VUURRZ0FFZXF6YTY4eWJJUkduN2RsZkpvOVE5TUxoaUFWQTgzL1M5UVRsR0wwcGt2T3J0K2QzMlYzbQpvRVhpNDB5VUFyQkpTSEhHNjdkZVpNcG1nZ0tEODd4M2dBPT0KLS0tLS1FTkQgRUMgUFJJVkFURSBLRVktLS0tLQo=
-
----
-
-
-# bastion04 에 만들어 준다. 
-$ cat > ~/.kube/config-multi
----
-apiVersion: v1
-clusters:
-- cluster:
-    certificate-authority-data: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUJkakNDQVIyZ0F3SUJBZ0lCQURBS0JnZ3Foa2pPUFFRREFqQWpNU0V3SHdZRFZRUUREQmhyTTNNdGMyVnkKZG1WeUxXTmhRREUzTVRjNU5EWXlPRFF3SGhjTk1qUXdOakE1TVRVeE9EQTBXaGNOTXpRd05qQTNNVFV4T0RBMApXakFqTVNFd0h3WURWUVFEREJock0zTXRjMlZ5ZG1WeUxXTmhRREUzTVRjNU5EWXlPRFF3V1RBVEJnY3Foa2pPClBRSUJCZ2dxaGtqT1BRTUJCd05DQUFUOVI4akk5eXVhYTM5SFpwNU5oWnovM2duY1VZQ2RTa2FIYXNzMysrOHMKQlFSYnFKbllnMXNLS2Exb3BqalVZK2o3YklUU0NNK205L1F4ZWc2eEF3QS9vMEl3UURBT0JnTlZIUThCQWY4RQpCQU1DQXFRd0R3WURWUjBUQVFIL0JBVXdBd0VCL3pBZEJnTlZIUTRFRmdRVVQ5Vi9VYU92a2toNUllVTVWSjB4CnNMWXpOdkV3Q2dZSUtvWkl6ajBFQXdJRFJ3QXdSQUlnU2lJRlAwbERBNWpxQVFOSVIrRFRlbVh4SDNYUkpYak0KNjRyK2NDbjNDQkFDSURsTW1qVll3MThSc2F3b2tlVEllUmpHKzc5K1dPZ0tzbFhBY3B1dUF3NWMKLS0tLS1FTkQgQ0VSVElGSUNBVEUtLS0tLQo=
-    server: https://10.0.0.13:6443
-  name: bastion04
-- cluster:
-    certificate-authority-data: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUJkekNDQVIyZ0F3SUJBZ0lCQURBS0JnZ3Foa2pPUFFRREFqQWpNU0V3SHdZRFZRUUREQmhyTTNNdGMyVnkKZG1WeUxXTmhRREUzTVRjNU5EWXlPVFl3SGhjTk1qUXdOakE1TVRVeE9ERTJXaGNOTXpRd05qQTNNVFV4T0RFMgpXakFqTVNFd0h3WURWUVFEREJock0zTXRjMlZ5ZG1WeUxXTmhRREUzTVRjNU5EWXlPVFl3V1RBVEJnY3Foa2pPClBRSUJCZ2dxaGtqT1BRTUJCd05DQUFRRnBhU1g0d1ZHWUxnQzdsRnl4emFYV2RCSUF4cjFHRTlYQ0ZIeTJDU00KSHBBVTFSVmR4RUVXV05rVEJNeU9OakRESEJSeUxJczdLWTlRSjBQdVp1ZjhvMEl3UURBT0JnTlZIUThCQWY4RQpCQU1DQXFRd0R3WURWUjBUQVFIL0JBVXdBd0VCL3pBZEJnTlZIUTRFRmdRVTJvdXoyUGdoOHBpMnlHdDMwQVBvCkVHM0lyOWd3Q2dZSUtvWkl6ajBFQXdJRFNBQXdSUUlnUVA5TnN3bWlCd25mT2RpS3FoaHNEaWUxdHJrajZDL2oKNzd1WmFmN2JpUnNDSVFDcFJOQnNyaTZ5MFVnczVNS0crcW5vRVU5WWpoeTIvWG5IRWdWenlodDRNdz09Ci0tLS0tRU5EIENFUlRJRklDQVRFLS0tLS0K
-    server: https://10.0.0.12:6443
-  name: bastion05
-contexts:
-- context:
-    cluster: bastion04
-    user: bastion04
-  name: bastion04
-- context:
-    cluster: bastion05
-    user: bastion05
-  name: bastion05
-current-context: bastion04
-kind: Config
-preferences: {}
-users:
-- name: bastion04
-  user:
-    client-certificate-data: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUJrRENDQVRlZ0F3SUJBZ0lJUHd4c3FhZ2s0SlV3Q2dZSUtvWkl6ajBFQXdJd0l6RWhNQjhHQTFVRUF3d1kKYXpOekxXTnNhV1Z1ZEMxallVQXhOekUzT1RRMk1qZzBNQjRYRFRJME1EWXdPVEUxTVRnd05Gb1hEVEkxTURZdwpPVEUxTVRnd05Gb3dNREVYTUJVR0ExVUVDaE1PYzNsemRHVnRPbTFoYzNSbGNuTXhGVEFUQmdOVkJBTVRESE41CmMzUmxiVHBoWkcxcGJqQlpNQk1HQnlxR1NNNDlBZ0VHQ0NxR1NNNDlBd0VIQTBJQUJIL2hReDhBWGlsam1MRVYKSGwvaGUzY2hJQjJTN2RpZGdCYXo3NXBlZ0hCKzltaFZmS29SeXB1WmlxMnlSRjVYVGQwdGVkMjBCTnFjNW15bApUamF3Q0xlalNEQkdNQTRHQTFVZER3RUIvd1FFQXdJRm9EQVRCZ05WSFNVRUREQUtCZ2dyQmdFRkJRY0RBakFmCkJnTlZIU01FR0RBV2dCUmNBQ0x3QXJJNktkaERJT1I2UmkrVVJiWE44VEFLQmdncWhrak9QUVFEQWdOSEFEQkUKQWlBZ0RWTWUrVFlPemdXUk9xRUUzQ0tqUXd0Rzlod3E3ZEZOcUZEWHR4b2J3UUlnVWEvRzlSMVdhaEs0dmc0cwp3WDQxTGxXRmFlbERLeVJwTTdsZWhKZmFDQ3c9Ci0tLS0tRU5EIENFUlRJRklDQVRFLS0tLS0KLS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUJkekNDQVIyZ0F3SUJBZ0lCQURBS0JnZ3Foa2pPUFFRREFqQWpNU0V3SHdZRFZRUUREQmhyTTNNdFkyeHAKWlc1MExXTmhRREUzTVRjNU5EWXlPRFF3SGhjTk1qUXdOakE1TVRVeE9EQTBXaGNOTXpRd05qQTNNVFV4T0RBMApXakFqTVNFd0h3WURWUVFEREJock0zTXRZMnhwWlc1MExXTmhRREUzTVRjNU5EWXlPRFF3V1RBVEJnY3Foa2pPClBRSUJCZ2dxaGtqT1BRTUJCd05DQUFTRWJrbTJZQnRRZXNQSk1jTWpITVhORjFITE9iRTZuMUJaNExzajN1bjIKT1lnNkd0bEVoMVcxRERBblRtVFFwMGxvNHVNMmJEdUJkK3JSK1JHZjBuTUdvMEl3UURBT0JnTlZIUThCQWY4RQpCQU1DQXFRd0R3WURWUjBUQVFIL0JBVXdBd0VCL3pBZEJnTlZIUTRFRmdRVVhBQWk4QUt5T2luWVF5RGtla1l2CmxFVzF6ZkV3Q2dZSUtvWkl6ajBFQXdJRFNBQXdSUUlnTXFPTnphc3lKMmRIakFRWnk0L3M4akNyOU5qT1h2dnUKMEtyc1hIVzdpYU1DSVFERnJVelNHNGpIMFZJUnpyUkgza0k2ZFJNQVFLNUlhbEEyekdqa1ZFL3hvdz09Ci0tLS0tRU5EIENFUlRJRklDQVRFLS0tLS0K
-    client-key-data: LS0tLS1CRUdJTiBFQyBQUklWQVRFIEtFWS0tLS0tCk1IY0NBUUVFSURmZUhFa1RxYkFhR0l6RlhXc2hCV1VPbUxNZnJVRkVudmg1bXB3ZXk0SlFvQW9HQ0NxR1NNNDkKQXdFSG9VUURRZ0FFZitGREh3QmVLV09Zc1JVZVgrRjdkeUVnSFpMdDJKMkFGclB2bWw2QWNINzJhRlY4cWhISwptNW1LcmJKRVhsZE4zUzE1M2JRRTJwem1iS1ZPTnJBSXR3PT0KLS0tLS1FTkQgRUMgUFJJVkFURSBLRVktLS0tLQo=
-- name: bastion05
-  user:
-    client-certificate-data: LS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUJrVENDQVRlZ0F3SUJBZ0lJQ2FzZmRxQ3R3eFF3Q2dZSUtvWkl6ajBFQXdJd0l6RWhNQjhHQTFVRUF3d1kKYXpOekxXTnNhV1Z1ZEMxallVQXhOekUzT1RRMk1qazJNQjRYRFRJME1EWXdPVEUxTVRneE5sb1hEVEkxTURZdwpPVEUxTVRneE5sb3dNREVYTUJVR0ExVUVDaE1PYzNsemRHVnRPbTFoYzNSbGNuTXhGVEFUQmdOVkJBTVRESE41CmMzUmxiVHBoWkcxcGJqQlpNQk1HQnlxR1NNNDlBZ0VHQ0NxR1NNNDlBd0VIQTBJQUJIcXMydXZNbXlFUnArM1oKWHlhUFVQVEM0WWdGUVBOLzB2VUU1Umk5S1pMenE3Zm5kOWxkNXFCRjR1Tk1sQUt3U1VoeHh1dTNYbVRLWm9JQwpnL084ZDRDalNEQkdNQTRHQTFVZER3RUIvd1FFQXdJRm9EQVRCZ05WSFNVRUREQUtCZ2dyQmdFRkJRY0RBakFmCkJnTlZIU01FR0RBV2dCUXRhdEpVcklLVUswaldTWHY5WXNwT1h5RjFIakFLQmdncWhrak9QUVFEQWdOSUFEQkYKQWlCZXpnK0dtWm1oNit4YWN4RjEzUlEydmxxS1hnS3UzakxTNXBwMDVzeWVrd0loQU1IOVdWSmNqYzFZL0szbgpVMkJ0cVBqS3pudUxpdTJ1azFuUlY4Q1FWYzcyCi0tLS0tRU5EIENFUlRJRklDQVRFLS0tLS0KLS0tLS1CRUdJTiBDRVJUSUZJQ0FURS0tLS0tCk1JSUJkekNDQVIyZ0F3SUJBZ0lCQURBS0JnZ3Foa2pPUFFRREFqQWpNU0V3SHdZRFZRUUREQmhyTTNNdFkyeHAKWlc1MExXTmhRREUzTVRjNU5EWXlPVFl3SGhjTk1qUXdOakE1TVRVeE9ERTJXaGNOTXpRd05qQTNNVFV4T0RFMgpXakFqTVNFd0h3WURWUVFEREJock0zTXRZMnhwWlc1MExXTmhRREUzTVRjNU5EWXlPVFl3V1RBVEJnY3Foa2pPClBRSUJCZ2dxaGtqT1BRTUJCd05DQUFSKzMrU0lZdEZ3Rit6OFpwT3lzdUE3OWF4QmZHbHBOQ1IrckVNcndUZ3EKeUg2NmRCMWJnWXduM1VMRTFsQmd0Q2ZQQWFMc1VkMzEvVGFuUkxUS09VSzNvMEl3UURBT0JnTlZIUThCQWY4RQpCQU1DQXFRd0R3WURWUjBUQVFIL0JBVXdBd0VCL3pBZEJnTlZIUTRFRmdRVUxXclNWS3lDbEN0STFrbDcvV0xLClRsOGhkUjR3Q2dZSUtvWkl6ajBFQXdJRFNBQXdSUUloQUo1anIyV1JHVHZmaDBnUjM4ZWxIcUkrZVlMSTV1ai8KSm8yckxyNkJXZ3JlQWlCeWM4Uy9VcmRHckp3M1BlM1RkWm9TOEhZRVJxT3plTkJHcVBJbjNvekpNZz09Ci0tLS0tRU5EIENFUlRJRklDQVRFLS0tLS0K
-    client-key-data: LS0tLS1CRUdJTiBFQyBQUklWQVRFIEtFWS0tLS0tCk1IY0NBUUVFSUFibnE0S0VxaVR4b25NWTl5bGFoNDlqc2YxclpZNFB4Z1JUN2U0TWc4NlFvQW9HQ0NxR1NNNDkKQXdFSG9VUURRZ0FFZXF6YTY4eWJJUkduN2RsZkpvOVE5TUxoaUFWQTgzL1M5UVRsR0wwcGt2T3J0K2QzMlYzbQpvRVhpNDB5VUFyQkpTSEhHNjdkZVpNcG1nZ0tEODd4M2dBPT0KLS0tLS1FTkQgRUMgUFJJVkFURSBLRVktLS0tLQo=
-
----
-
-
-
-```
-
-kubernetes  공식 Document site 를 참고하자.
-
-참고링크 : https://kubernetes.io/docs/tasks/access-application-cluster/configure-access-multiple-clusters/
-
-
-
-현재 사용하고자 하는 kubeconfig 파일을 정의 한다. 
-
-```sh
-# multi kubeconfig 적용
-$ export KUBECONFIG="${HOME}/.kube/config-multi"
-
-```
-
-특정 클러스터에 접근하기 위해서 아래와 같이 환경변수를 설정한다.
-
-```sh
-$ export CLUSTER1=bastion04
-  export CLUSTER2=bastion05
-  
-```
-
-이제는 아래 명령으로 특정 클러스터를 지정해서 명령을 수행할 수 있다.
-
-```sh
-$ kubectl --context $CLUSTER1 -n kube-system get svc
-
-$ kubectl --context $CLUSTER2 -n kube-system get svc
-```
-
-
-
 ## 3) Cilium Install
 
 클러스터별 환경설정이 마무리 되었다면 이제는 Cilium 을 Install 하자.
@@ -366,11 +418,11 @@ $ kubectl --context $CLUSTER2 -n kube-system get svc
 먼저 첫번째 클러스터에서 cilium 을 설치한다. cluster.id 와 cluster.name 을 고유하게 설정한다.
 
 ```sh
-# cilium ingressController enable
 
 $ cilium install --context $CLUSTER1 \
   --set cluster.id=1 \
   --set cluster.name=cluster1 \
+  --set=ipam.operator.clusterPoolIPv4PodCIDRList="10.11.0.0/16" \
   --version 1.15.5
   
 🔮 Auto-detected Kubernetes kind: K3s
@@ -384,17 +436,15 @@ $ cilium install --context $CLUSTER1 \
 먼저 두번째 클러스터에서 cilium을 설치한다.
 
 ```sh
-# cilium ingressController enable
-
 $ cilium install --context $CLUSTER2 \
   --set cluster.id=2 \
   --set cluster.name=cluster2 \
+  --set=ipam.operator.clusterPoolIPv4PodCIDRList="10.21.0.0/16" \
   --version 1.15.5
-
+  
 🔮 Auto-detected Kubernetes kind: K3s
 ℹ️  Using Cilium version 1.15.5
 ℹ️  Using cluster name "cluster2"
-
 
 
 ```
@@ -404,28 +454,24 @@ $ cilium install --context $CLUSTER2 \
 cilium status 명령으로 현재 Cilium 상태를  확인할 수 있다.
 
 ```sh
-$ cilium status --context $CLUSTER1
 
+
+$ cilium status --context $CLUSTER1
     /¯¯\
  /¯¯\__/¯¯\    Cilium:             OK
  \__/¯¯\__/    Operator:           OK
  /¯¯\__/¯¯\    Envoy DaemonSet:    disabled (using embedded mode)
  \__/¯¯\__/    Hubble Relay:       disabled
-    \__/       ClusterMesh:        OK
+    \__/       ClusterMesh:        disabled
 
-Deployment             cilium-operator          Desired: 1, Ready: 1/1, Available: 1/1
-DaemonSet              cilium                   Desired: 1, Ready: 1/1, Available: 1/1
-Deployment             clustermesh-apiserver    Desired: 1, Ready: 1/1, Available: 1/1
-Containers:            cilium                   Running: 1
-                       cilium-operator          Running: 1
-                       clustermesh-apiserver    Running: 1
-Cluster Pods:          11/11 managed by Cilium
-Helm chart version:    1.14.1
-Image versions         cilium                   quay.io/cilium/cilium:v1.14.1@sha256:edc1d05ea1365c4a8f6ac6982247d5c145181704894bb698619c3827b6963a72: 1
-                       cilium-operator          quay.io/cilium/operator-generic:v1.14.1@sha256:e061de0a930534c7e3f8feda8330976367971238ccafff42659f104effd4b5f7: 1
-                       clustermesh-apiserver    quay.io/coreos/etcd:v3.5.4@sha256:795d8660c48c439a7c3764c2330ed9222ab5db5bb524d8d0607cac76f7ba82a3: 1
-                       clustermesh-apiserver    quay.io/cilium/clustermesh-apiserver:v1.14.1@sha256:a7353669b1f7cb96cd600d98c7dd12e909d876843a7a272a1bc407e114ed225c: 1
-
+Deployment             cilium-operator    Desired: 1, Ready: 1/1, Available: 1/1
+DaemonSet              cilium             Desired: 1, Ready: 1/1, Available: 1/1
+Containers:            cilium-operator    Running: 1
+                       cilium             Running: 1
+Cluster Pods:          5/5 managed by Cilium
+Helm chart version:
+Image versions         cilium             quay.io/cilium/cilium:v1.15.5@sha256:4ce1666a73815101ec9a4d360af6c5b7f1193ab00d89b7124f8505dee147ca40: 1
+                       cilium-operator    quay.io/cilium/operator-generic:v1.15.5@sha256:f5d3d19754074ca052be6aac5d1ffb1de1eb5f2d947222b5f10f6d97ad4383e8: 1
 
 
 $ cilium status --context $CLUSTER2
@@ -434,20 +480,17 @@ $ cilium status --context $CLUSTER2
  \__/¯¯\__/    Operator:           OK
  /¯¯\__/¯¯\    Envoy DaemonSet:    disabled (using embedded mode)
  \__/¯¯\__/    Hubble Relay:       disabled
-    \__/       ClusterMesh:        OK
+    \__/       ClusterMesh:        disabled
 
-Deployment             cilium-operator          Desired: 1, Ready: 1/1, Available: 1/1
-Deployment             clustermesh-apiserver    Desired: 1, Ready: 1/1, Available: 1/1
-DaemonSet              cilium                   Desired: 1, Ready: 1/1, Available: 1/1
-Containers:            clustermesh-apiserver    Running: 1
-                       cilium                   Running: 1
-                       cilium-operator          Running: 1
-Cluster Pods:          8/8 managed by Cilium
-Helm chart version:    1.14.1
-Image versions         cilium                   quay.io/cilium/cilium:v1.14.1@sha256:edc1d05ea1365c4a8f6ac6982247d5c145181704894bb698619c3827b6963a72: 1
-                       cilium-operator          quay.io/cilium/operator-generic:v1.14.1@sha256:e061de0a930534c7e3f8feda8330976367971238ccafff42659f104effd4b5f7: 1
-                       clustermesh-apiserver    quay.io/coreos/etcd:v3.5.4@sha256:795d8660c48c439a7c3764c2330ed9222ab5db5bb524d8d0607cac76f7ba82a3: 1
-                       clustermesh-apiserver    quay.io/cilium/clustermesh-apiserver:v1.14.1@sha256:a7353669b1f7cb96cd600d98c7dd12e909d876843a7a272a1bc407e114ed225c: 1
+Deployment             cilium-operator    Desired: 1, Ready: 1/1, Available: 1/1
+DaemonSet              cilium             Desired: 1, Ready: 1/1, Available: 1/1
+Containers:            cilium             Running: 1
+                       cilium-operator    Running: 1
+Cluster Pods:          5/5 managed by Cilium
+Helm chart version:
+Image versions         cilium             quay.io/cilium/cilium:v1.15.5@sha256:4ce1666a73815101ec9a4d360af6c5b7f1193ab00d89b7124f8505dee147ca40: 1
+                       cilium-operator    quay.io/cilium/operator-generic:v1.15.5@sha256:f5d3d19754074ca052be6aac5d1ffb1de1eb5f2d947222b5f10f6d97ad4383e8: 1
+
 
 ```
 
@@ -474,7 +517,6 @@ $ cilium uninstall --context $CLUSTER2
 ⌛ Uninstalling Cilium
 
 
-
 $ cilium status --wait --context $CLUSTER1
 $ cilium status --wait --context $CLUSTER2
 
@@ -484,7 +526,7 @@ $ cilium status --wait --context $CLUSTER2
 
 
 
-## 4) Cluster Mesh 설정 및 Cluster 연결
+## 4) Cluster Mesh 설정
 
 Cilium Install이 마무리되었다면 Cluster별로 연결을 시도해 보자.
 
@@ -498,55 +540,61 @@ $ cilium clustermesh enable --context $CLUSTER1 --service-type=NodePort
 ⚠️  Using service type NodePort may fail when nodes are removed from the cluster!
 
 
-$ cilium clustermesh status --context $CLUSTER1
-⚠️  Service type NodePort detected! Service may fail when nodes are removed from the cluster!
+$ cilium clustermesh status --context $CLUSTER1e cluster!
 ✅ Service "clustermesh-apiserver" of type "NodePort" found
 ✅ Cluster access information is available:
-  - 172.30.1.89:32379
+  - 10.0.0.11:32379
 ✅ Deployment clustermesh-apiserver is ready
+ℹ️  KVStoreMesh is disabled
 🔌 No cluster connected
 🔀 Global services: [ min:0 / avg:0.0 / max:0 ]
+
+
 
 
 
 ## cluster2 에서
 $ cilium clustermesh enable --context $CLUSTER2 --service-type=NodePort
+⚠️  Using service type NodePort may fail when nodes are removed from the cluster!
 
 
 $ cilium clustermesh status --context $CLUSTER1
 ⚠️  Service type NodePort detected! Service may fail when nodes are removed from the cluster!
 ✅ Service "clustermesh-apiserver" of type "NodePort" found
 ✅ Cluster access information is available:
-  - 172.30.1.89:32379
+  - 10.0.0.11:32379
 ✅ Deployment clustermesh-apiserver is ready
+ℹ️  KVStoreMesh is disabled
 🔌 No cluster connected
 🔀 Global services: [ min:0 / avg:0.0 / max:0 ]
+
 
 
 ```
 
 
 
+## 5) Cluster 연결
+
 Mesh enable 까지 설정했다면 Cluster 연결준비가 완료된 상태이다.  Cluster Mesh Connect 명령으로 연결을 시도해 보자.
 
 ```sh
 # clustermesh connect 설정
 
-$ cilium clustermesh connect --context $CLUSTER1 --destination-context $CLUSTER2
 
-✅ Detected Helm release with Cilium version 1.14.1
+$ cilium clustermesh connect --context $CLUSTER1 --destination-context $CLUSTER2
 ✨ Extracting access information of cluster cluster2...
 🔑 Extracting secrets from cluster cluster2...
 ⚠️  Service type NodePort detected! Service may fail when nodes are removed from the cluster!
-ℹ️  Found ClusterMesh service IPs: [172.30.1.85]
+ℹ️  Found ClusterMesh service IPs: [10.0.0.12]
 ✨ Extracting access information of cluster cluster1...
 🔑 Extracting secrets from cluster cluster1...
 ⚠️  Service type NodePort detected! Service may fail when nodes are removed from the cluster!
-ℹ️  Found ClusterMesh service IPs: [172.30.1.89]
+ℹ️  Found ClusterMesh service IPs: [10.0.0.11]
 ⚠️ Cilium CA certificates do not match between clusters. Multicluster features will be limited!
-ℹ️ Configuring Cilium in cluster 'bastion02' to connect to cluster 'bastion03'
-ℹ️ Configuring Cilium in cluster 'bastion03' to connect to cluster 'bastion02'
-✅ Connected cluster bastion02 and bastion03!
+ℹ️ Configuring Cilium in cluster 'bastion05' to connect to cluster 'bastion06'
+ℹ️ Configuring Cilium in cluster 'bastion06' to connect to cluster 'bastion05'
+✅ Connected cluster bastion05 and bastion06!
 
 
 # 확인
@@ -555,12 +603,18 @@ $ cilium clustermesh status --context $CLUSTER1 --wait
 ⚠️  Service type NodePort detected! Service may fail when nodes are removed from the cluster!
 ✅ Service "clustermesh-apiserver" of type "NodePort" found
 ✅ Cluster access information is available:
-  - 172.30.1.89:32379
+  - 10.0.0.11:32379
 ✅ Deployment clustermesh-apiserver is ready
+ℹ️  KVStoreMesh is disabled
+
 ✅ All 1 nodes are connected to all clusters [min:1 / avg:1.0 / max:1]
+
 🔌 Cluster Connections:
   - cluster2: 1/1 configured, 1/1 connected
+
 🔀 Global services: [ min:0 / avg:0.0 / max:0 ]
+
+
 
 ```
 
@@ -568,20 +622,35 @@ $ cilium clustermesh status --context $CLUSTER1 --wait
 
 
 
+## 6) connectivity test
+
 연결이 잘되는 테스트 해보기 위해서 connectivity test 명령을 수행해 보자. 
 
 각종 svc, deploy, pod 들이 자동으로 실행되면서 테스트를 수행할 것이다.
 
 ```sh
 $ cilium connectivity test --context $CLUSTER1 --multi-cluster $CLUSTER2
-# 각종 deployment / pod / svc 들이 설치된다.
+....
+[=] [cilium-test] Test [check-log-errors] [80/80]
+..................
+✅ [cilium-test] All 47 tests (304 actions) successful, 33 tests skipped, 1 scenarios skipped.
+
+# cilium-test 라는 namespace 가 생성되면서 각종 deployment / pod / svc 들이 설치되면서 총 50여개의 테스트를 수행한다.
+
+
+# 약 10분정도 소요된다.
 
 
 # 수작업 테스트
-curl -i echo-other-node:8080
 curl -i echo-same-node:8080
+curl -i echo-other-node:8080
 
 ```
+
+* echo-same-node 서비스는 cluster1 에 존재하는 POD 에 접근 한다.
+* echo-other-node 서비스는 cluster2 에 존재하는 POD 에 접근 한다.
+
+
 
 
 
@@ -600,8 +669,8 @@ Cilium으로 연결된 멀티 클러스터 환경에 userlist 라는 Sample AP �
 각 클러스터별로 namespace 를 각각 생성해야 하며 이름이 동일해야 한다는 점을 명심하자.
 
 ```sh
-$ kubectl create --context=$CLUSTER1 namespace song
-  kubectl create --context=$CLUSTER2 namespace song
+$ kubectl create --context=$CLUSTER1 namespace userapp
+  kubectl create --context=$CLUSTER2 namespace userapp
 ```
 
 
@@ -667,33 +736,30 @@ EOF
 해당 yaml 을 실행해보자.
 
 ```sh
-$ cd ~/song/cilium/userlist
+$ cd ~/temp/userlist
 
 
 # cluster1
-$ kubectl --context=$CLUSTER1 -n song apply -f 11.userlist-deployment.yaml
-  kubectl --context=$CLUSTER1 -n song apply -f 12.userlist-svc.yaml
+$ kubectl --context=$CLUSTER1 -n userapp apply -f 11.userlist-deployment.yaml
+  kubectl --context=$CLUSTER1 -n userapp apply -f 12.userlist-svc.yaml
 
 # cluster2
-$ kubectl --context=$CLUSTER2 -n song apply -f 11.userlist-deployment.yaml
-  kubectl --context=$CLUSTER2 -n song apply -f 12.userlist-svc.yaml
+$ kubectl --context=$CLUSTER2 -n userapp apply -f 11.userlist-deployment.yaml
+  kubectl --context=$CLUSTER2 -n userapp apply -f 12.userlist-svc.yaml
 
 # 확인
-$ kubectl --context=$CLUSTER1 -n song get pod
-  kubectl --context=$CLUSTER2 -n song get pod
-
+$ kubectl --context=$CLUSTER1 -n userapp get pod
+  kubectl --context=$CLUSTER2 -n userapp get pod
 
 
 
 # [참고] clean up
+$ kubectl --context=$CLUSTER1 -n userapp delete -f 11.userlist-deployment.yaml
+  kubectl --context=$CLUSTER1 -n userapp delete -f 12.userlist-svc.yaml
+  
+$ kubectl --context=$CLUSTER2 -n userapp delete -f 11.userlist-deployment.yaml
+  kubectl --context=$CLUSTER2 -n userapp delete -f 12.userlist-svc.yaml
 
-$ kubectl --context=$CLUSTER1 -n song delete -f 11.userlist-deployment.yaml
-  kubectl --context=$CLUSTER1 -n song delete -f 12.userlist-svc.yaml
-  
-$ kubectl --context=$CLUSTER2 -n song delete -f 11.userlist-deployment.yaml
-  kubectl --context=$CLUSTER2 -n song delete -f 12.userlist-svc.yaml
-  
-  
 ```
 
 userlist 가 잘 실행되었을 것이다.
@@ -705,23 +771,22 @@ curl  test 를 위해 적당한 pod 를 실행해보자.
 ```sh
 $ kubectl create deploy curltest \
     --context $CLUSTER1 \
-    --namespace song \
+    --namespace userapp \
     --image=curlimages/curl -- sleep 365d
 
   kubectl create deploy curltest \
     --context $CLUSTER2 \
-    --namespace song \
+    --namespace userapp \
     --image=curlimages/curl -- sleep 365d
 
 
-$ kubectl --context $CLUSTER1 -n song get pod
-$ kubectl --context $CLUSTER2 -n song get pod
+$ kubectl --context $CLUSTER1 -n userapp get pod
+  kubectl --context $CLUSTER2 -n userapp get pod
 
 
 
 ## [참고] 삭제시...
 $ kubectl -n song delete deploy curltest
-
 
 ```
 
@@ -729,31 +794,33 @@ $ kubectl -n song delete deploy curltest
 
 yaml 이 실행 완료 되었다면 cluster1에서 userlist 호출 시도해 보자.
 
-Cluster2 에 실행되는 POD 까지 모두 확인 될 것이다.
-
 ```sh
-$ kubectl --context $CLUSTER1 -n song \
+$ kubectl --context $CLUSTER1 -n userapp \
     exec -it deploy/curltest -- sh
 
-$ curl -sS userlist-svc.song.svc:80/users/1
+$ curl -sS userlist-svc.userapp.svc:80/users/1
 
 # while 문으로 call
-$ while true;do curl -sS userlist-svc.song.svc:80/users/1;sleep 1; echo; done;
+$ while true;do curl -sS userlist-svc.userapp.svc:80/users/1;sleep 1; echo; done;
 
 ```
+
+Cluster1 의 userlist pod 뿐만 아니라  Cluster2 userlist pod 까지 모두 접근되는 부분을 확인 할 수 있다.
+
+
 
 
 
 cluster2에서도 userlist 호출 시도해 보자. 역시나 cluster1, cluster2 의 pod 들의 내용이 모두 확인 될 것이다.
 
 ```sh
-$ kubectl --context $CLUSTER2 -n song \
+$ kubectl --context $CLUSTER2 -n userapp \
     exec -it deploy/curltest -- sh
 
-$ curl -sS userlist-svc.song.svc:80/users/1
+$ curl -sS userlist-svc.userapp.svc:80/users/1
 
 # while 문으로 call
-$ while true;do curl -sS userlist-svc.song.svc:80/users/1;sleep 1; echo; done;
+$ while true;do curl -sS userlist-svc.userapp.svc:80/users/1;sleep 1; echo; done;
 
 
 ```
@@ -764,15 +831,16 @@ $ while true;do curl -sS userlist-svc.song.svc:80/users/1;sleep 1; echo; done;
 
 
 
-
-
 ## 2) service affinity 
 
 바로 위에서 테스트 한 것처럼 Cluster1 에서 또는 Cluster2 에서 테스트할 때 모든 Cluster 의 POD들이 RoundRobbin 대상이 되지만  이런 로드 밸런싱은 경우에 따라서 이상적이지 않을 수 있다.  즉, 특정 순간에는 local Cluster 로만 집중시키고 싶은 경우가 있을 것이고 아니면 remote Cluster 로 Call 을 집중시키길 희망하는 경우가 있을 수 있다. 이런 경우 annotation affinity로 endpoint 대상을 지정할 수 있다.
 
-```yaml
-service.cilium.io/affinity: "local|remote|none"
 
+
+```yaml
+
+# affinity 에 입력가능 값들의 종류
+service.cilium.io/affinity: "local|remote|none"
 
 # 사용사례
 apiVersion: v1
@@ -781,11 +849,14 @@ metadata:
   name: rebel-base
   annotations:
      service.cilium.io/global: "true"
+     
      # Possible values:
      # - local
      #    preferred endpoints from local cluster if available
+     
      # - remote
      #    preferred endpoints from remote cluster if available
+
      # none (default)
      #    no preference. Default behavior if this annotation does not exist
      service.cilium.io/affinity: "local"
@@ -793,30 +864,48 @@ metadata:
      
 ```
 
+
+
 아래와 같이 local / remote / none 등으로 반영해 보자.
 
 ```sh
 # local 로 변경
-$ kubectl --context $CLUSTER1 -n song \
+$ kubectl --context $CLUSTER1 -n userapp \
     annotate service userlist-svc service.cilium.io/affinity=local --overwrite
 
 
 # remote 로 변경
-$ kubectl --context $CLUSTER1 -n song \
+$ kubectl --context $CLUSTER1 -n userapp \
     annotate service userlist-svc service.cilium.io/affinity=remote --overwrite
 
 
 # none 로 변경
-$ kubectl --context $CLUSTER1 -n song \
+$ kubectl --context $CLUSTER1 -n userapp \
     annotate service userlist-svc service.cilium.io/affinity=none --overwrite
 
 
 # annotation 제거
-$ kubectl --context $CLUSTER1 -n song \
+$ kubectl --context $CLUSTER1 -n userapp \
     annotate service userlist-svc service.cilium.io/affinity-  --overwrite
 
+```
+
+
+
+Clusrer1 의 curltest pod 에서 curl 을 시도해보자.
+
+```sh
+$ kubectl --context $CLUSTER1 -n userapp \
+    exec -it deploy/curltest -- sh
+
+$ curl -sS userlist-svc.userapp.svc:80/users/1
+
+# while 문으로 call
+$ while true;do curl -sS userlist-svc.userapp.svc:80/users/1;sleep 1; echo; done;
 
 ```
+
+
 
 
 
@@ -825,7 +914,7 @@ $ kubectl --context $CLUSTER1 -n song \
 이를 확인하기 위해서 cilium cli로 service list 명령을 수행해 보자.
 
 ```sh
-$ kubectl exec -n kube-system -ti ds/cilium -- cilium service list --clustermesh-affinity    
+$ kubectl exec -n kube-system -ti ds/cilium -- cilium service list --clustermesh-affinity
 ID   Frontend            Service Type   Backend
 2    10.43.0.10:53       ClusterIP      1 => 10.0.0.164:53 (active)
 3    10.43.0.10:9153     ClusterIP      1 => 10.0.0.164:9153 (active)
