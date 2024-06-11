@@ -1,4 +1,4 @@
-# ktds-edu-k8s-deeper
+# Kubernetes 활용 실무2
 > kubernetes 기반 업무에서 활용할 수 있는 활용 Tip 및  Skill Up
 
 
