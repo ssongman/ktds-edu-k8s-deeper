@@ -164,41 +164,43 @@ C:\githubrepo\ktds-edu-k8s-deeper\README.md
 
 ### 개인 VM 서버 주소 확인
 
-| 이름   | 팀             | Email                  | Namespace | VM Server    | VM Server IP  | IP        |
-| ------ | -------------- | ---------------------- | --------- | ------------ | ------------- | --------- |
-| 송양종 | AX성장전략팀   | 강사1                  | user01    | ke-bastion01 |               |           |
-| 송양종 | AX성장전략팀   | 강사2                  | user02    | ke-bastion02 |               |           |
-| 송양종 | AX성장전략팀   | 강사3                  | user03    | ke-bastion03 |               |           |
-| 김현진 | 고객인프라팀   | kim.hyun-jin@kt.com    | user11    | ke-bastion11 | 20.41.84.153  | 10.0.0.14 |
-| 정문경 | ICT CoE팀      | mungyeong.jeong@kt.com | user12    | ke-bastion12 | 20.41.80.199  | 10.0.0.13 |
-| 문예진 | 데이터DX개발팀 | yejin.moon@kt.com      | user13    | ke-bastion13 | 20.41.74.21   | 10.0.0.15 |
-| 류경하 | 아키텍처팀     | kyungha.ryu@kt.com     | user14    | ke-bastion14 | 20.41.80.124  | 10.0.0.16 |
-| 임성식 | ICIS Tr 빌링팀 | sslim@kt.com           | user15    | ke-bastion15 | 20.39.205.10  | 10.0.0.17 |
-| 김재현 | DX개발팀       | kim.db@kt.com          | user16    | ke-bastion16 | 20.41.78.9    | 10.0.0.18 |
-| 백승연 | ICT CoE팀      | seung_yeon.baek@kt.com | user17    | ke-bastion17 | 20.41.75.32   | 10.0.0.19 |
-| 이승미 | 인프라DX개발팀 | seungmii.lee@kt.com    | user18    | ke-bastion18 | 20.39.200.112 | 10.0.0.20 |
-|        |                |                        | user19    | ke-bastion19 | 20.39.206.236 | 10.0.0.21 |
-|        |                |                        | user20    | ke-bastion20 | 20.41.84.227  | 10.0.0.22 |
+| 이름   | 팀              | Email                  | Namespace | VM  Server   | VM  Server IP |
+| ------ | --------------- | ---------------------- | --------- | ------------ | ------------- |
+| 송양종 | AX성장전략팀    | 강사1                  | user01    | ke-bastion01 | 4.217.232.226 |
+| 송양종 | AX성장전략팀    | 강사2                  | user02    | ke-bastion02 | 4.230.148.205 |
+| 송양종 | AX성장전략팀    | 강사3                  | user03    | ke-bastion03 | 20.41.82.14   |
+| 정문경 | ICT  CoE팀      | mungyeong.jeong@kt.com | user11    | ke-bastion11 | 20.41.84.153  |
+| 문예진 | 데이터DX개발팀  | yejin.moon@kt.com      | user12    | ke-bastion12 | 20.41.80.199  |
+| 류경하 | 아키텍처팀      | kyungha.ryu@kt.com     | user13    | ke-bastion13 | 20.41.74.21   |
+| 임성식 | ICIS  Tr 빌링팀 | sslim@kt.com           | user14    | ke-bastion14 | 20.41.80.124  |
+| 김재현 | DX개발팀        | kim.db@kt.com          | user15    | ke-bastion15 | 20.39.205.10  |
+| 백승연 | ICT  CoE팀      | seung_yeon.baek@kt.com | user16    | ke-bastion16 | 20.41.78.9    |
+| 이승미 | 인프라DX개발팀  | seungmii.lee@kt.com    | user17    | ke-bastion17 | 20.41.75.32   |
+|        |                 |                        | user18    | ke-bastion18 | 20.39.200.112 |
+|        |                 |                        | user19    | ke-bastion19 | 20.39.206.236 |
+|        |                 |                        | user20    | ke-bastion20 | 20.41.84.227  |
+
+
 
 
 
 ### 멀티클러스터 VM 확인
 
-| 이름   | 팀             | Email                  | Namespace | VM Server    | VM Server IP  | IP        |
-| ------ | -------------- | ---------------------- | --------- | ------------ | ------------- | --------- |
-| 송양종 | AX성장전략팀   | 강사1                  | user01    |              |               |           |
-| 송양종 | AX성장전략팀   | 강사2                  | user02    |              |               |           |
-| 송양종 | AX성장전략팀   | 강사3                  | user03    | ke-bastion04 |               |           |
-| 김현진 | 고객인프라팀   | kim.hyun-jin@kt.com    | user11    | ke-bastion21 | 20.39.203.193 | 10.0.0.23 |
-| 정문경 | ICT CoE팀      | mungyeong.jeong@kt.com | user12    | ke-bastion22 | 20.39.200.39  | 10.0.0.24 |
-| 문예진 | 데이터DX개발팀 | yejin.moon@kt.com      | user13    | ke-bastion23 | 4.217.239.59  | 10.0.0.25 |
-| 류경하 | 아키텍처팀     | kyungha.ryu@kt.com     | user14    | ke-bastion24 | 4.230.1.184   | 10.0.0.8  |
-| 임성식 | ICIS Tr 빌링팀 | sslim@kt.com           | user15    | ke-bastion25 | 4.217.233.116 | 10.0.0.9  |
-| 김재현 | DX개발팀       | kim.db@kt.com          | user16    | ke-bastion26 | 4.230.3.62    | 10.0.0.26 |
-| 백승연 | ICT CoE팀      | seung_yeon.baek@kt.com | user17    | ke-bastion27 | 4.217.236.165 | 10.0.0.27 |
-| 이승미 | 인프라DX개발팀 | seungmii.lee@kt.com    | user18    | ke-bastion28 | 4.230.3.61    | 10.0.0.28 |
-|        |                |                        | user19    | ke-bastion29 | 4.230.2.86    | 10.0.0.29 |
-|        |                |                        | user20    | ke-bastion30 | 4.217.234.211 | 10.0.0.30 |
+| 이름   | 팀              | Email                  | Namespace | VM  Server   | VM  Server IP | IP        |
+| ------ | --------------- | ---------------------- | --------- | ------------ | ------------- | --------- |
+| 송양종 | AX성장전략팀    | 강사1                  | user01    |              |               |           |
+| 송양종 | AX성장전략팀    | 강사2                  | user02    |              |               |           |
+| 송양종 | AX성장전략팀    | 강사3                  | user03    | ke-bastion04 | 20.41.84.246  | 10.0.0.12 |
+| 정문경 | ICT  CoE팀      | mungyeong.jeong@kt.com | user11    | ke-bastion21 | 20.39.203.193 | 10.0.0.23 |
+| 문예진 | 데이터DX개발팀  | yejin.moon@kt.com      | user12    | ke-bastion22 | 20.39.200.39  | 10.0.0.24 |
+| 류경하 | 아키텍처팀      | kyungha.ryu@kt.com     | user13    | ke-bastion23 | 4.217.239.59  | 10.0.0.25 |
+| 임성식 | ICIS  Tr 빌링팀 | sslim@kt.com           | user14    | ke-bastion24 | 4.230.1.184   | 10.0.0.8  |
+| 김재현 | DX개발팀        | kim.db@kt.com          | user15    | ke-bastion25 | 4.217.233.116 | 10.0.0.9  |
+| 백승연 | ICT  CoE팀      | seung_yeon.baek@kt.com | user16    | ke-bastion26 | 4.230.3.62    | 10.0.0.26 |
+| 이승미 | 인프라DX개발팀  | seungmii.lee@kt.com    | user17    | ke-bastion27 | 4.217.236.165 | 10.0.0.27 |
+|        |                 |                        | user18    | ke-bastion28 | 4.230.3.61    | 10.0.0.28 |
+|        |                 |                        | user19    | ke-bastion29 | 4.230.2.86    | 10.0.0.29 |
+|        |                 |                        | user20    | ke-bastion30 | 4.217.234.211 | 10.0.0.30 |
 
 
 
@@ -233,7 +235,6 @@ Mobaxterm 을 실행하여 VM 접속정보를 위한 신규 session 을 생성�
     - Password 는 별도 공지
   
 - Port : 22
-
 
 
 
