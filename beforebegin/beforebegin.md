@@ -184,21 +184,21 @@ C:\githubrepo\ktds-edu-k8s-deeper\README.md
 
 ### 멀티클러스터 VM 확인
 
-| 이름   | 팀              | Email                  | Namespace | VM  Server   | VM  Server IP | IP        |
-| ------ | --------------- | ---------------------- | --------- | ------------ | ------------- | --------- |
-| 송양종 | AX성장전략팀    | 강사1                  | user01    |              |               |           |
-| 송양종 | AX성장전략팀    | 강사2                  | user02    |              |               |           |
-| 송양종 | AX성장전략팀    | 강사3                  | user03    | ke-bastion04 | 20.41.84.246  | 10.0.0.12 |
-| 정문경 | ICT  CoE팀      | mungyeong.jeong@kt.com | user11    | ke-bastion21 | 20.39.203.193 | 10.0.0.23 |
-| 문예진 | 데이터DX개발팀  | yejin.moon@kt.com      | user12    | ke-bastion22 | 20.39.200.39  | 10.0.0.24 |
-| 류경하 | 아키텍처팀      | kyungha.ryu@kt.com     | user13    | ke-bastion23 | 4.217.239.59  | 10.0.0.25 |
-| 임성식 | ICIS  Tr 빌링팀 | sslim@kt.com           | user14    | ke-bastion24 | 4.230.1.184   | 10.0.0.8  |
-| 김재현 | DX개발팀        | kim.db@kt.com          | user15    | ke-bastion25 | 4.217.233.116 | 10.0.0.9  |
-| 백승연 | ICT  CoE팀      | seung_yeon.baek@kt.com | user16    | ke-bastion26 | 4.230.3.62    | 10.0.0.26 |
-| 이승미 | 인프라DX개발팀  | seungmii.lee@kt.com    | user17    | ke-bastion27 | 4.217.236.165 | 10.0.0.27 |
-|        |                 |                        | user18    | ke-bastion28 | 4.230.3.61    | 10.0.0.28 |
-|        |                 |                        | user19    | ke-bastion29 | 4.230.2.86    | 10.0.0.29 |
-|        |                 |                        | user20    | ke-bastion30 | 4.217.234.211 | 10.0.0.30 |
+| 이름   | 팀           | Email | Namespace | VM  Server | VM  Server IP | IP   |
+| ------ | ------------ | ----- | --------- | ---------- | ------------- | ---- |
+| 송양종 | AX성장전략팀 | 강사1 | user01    |            |               |      |
+| 송양종 | AX성장전략팀 | 강사2 | user02    |            |               |      |
+|        |              |       |           |            |               |      |
+|        |              |       |           |            |               |      |
+|        |              |       |           |            |               |      |
+|        |              |       |           |            |               |      |
+|        |              |       |           |            |               |      |
+|        |              |       |           |            |               |      |
+|        |              |       |           |            |               |      |
+|        |              |       |           |            |               |      |
+|        |              |       |           |            |               |      |
+|        |              |       |           |            |               |      |
+|        |              |       |           |            |               |      |
 
 
 
