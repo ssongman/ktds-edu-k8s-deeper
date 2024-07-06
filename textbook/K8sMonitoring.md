@@ -499,7 +499,7 @@ http://grafana.4.217.252.117.nip.io/
 
 
 
-## ver1.0(google-containers)
+## Ver1.0(google-containers)
 
 
 
@@ -561,7 +561,7 @@ $ kubectl -n monitoring  delete Deployment event-exporter
 
 
 
-## ver2.0(caicloud)
+## Ver2.0(caicloud)
 
 
 
@@ -886,6 +886,304 @@ $ kubectl -n prometheus delete -f deploy.yaml
 
 
 
+
+
+## Ver3.0
+
+
+
+
+
+
+
+https://github.com/resmoio/kubernetes-event-exporter
+
+
+
+
+
+### 참고
+
+
+
+```sh
+
+
+# monitoring 이 hardcoding 되어 있음.
+$ kubectl -n monitoring apply -k https://github.com/resmoio/kubernetes-event-exporter.git
+
+serviceaccount/event-exporter created
+clusterrole.rbac.authorization.k8s.io/event-exporter created
+clusterrolebinding.rbac.authorization.k8s.io/event-exporter created
+configmap/event-exporter-cfg created
+deployment.apps/event-exporter created
+
+
+
+# 삭제시...
+$ kubectl -n monitoring delete -k https://github.com/resmoio/kubernetes-event-exporter.git
+
+
+
+```
+
+
+
+
+
+## Ver4.0
+
+https://pseonghoon.github.io/post/kubernetes-event-exporter/
+
+https://github.com/bitnami/charts/tree/main/bitnami/kubernetes-event-exporter
+
+
+
+### (1) install with helm
+
+```sh
+
+$ helm repo add bitnami https://charts.bitnami.com/bitnami
+
+$ helm search repo kubernetes-event-exporter
+NAME                                    CHART VERSION   APP VERSION     DESCRIPTION
+bitnami/kubernetes-event-exporter       3.2.7           1.7.0           Kubernetes Event Exporter makes it easy to expo...
+
+
+$ cd /helm/charts
+
+$ helm fetch bitnami/kubernetes-event-exporter
+
+
+# Namespace생성 
+$ kubectl create ns event-exporter
+
+
+
+$ cd ~/helm/charts/kubernetes-event-exporter
+
+
+# install
+$ helm --namespace monitoring upgrade event-exporter bitnami/kubernetes-event-exporter \
+  --install \
+  --set metrics.enabled=true \
+  --set metrics.serviceMonitor.enabled=true
+
+
+
+
+############################
+
+  --set metrics.enabled=true \     # <--service 가 자동으로 만들어 진다.
+  --version 3.2.7 \     
+  --values values.yaml \
+  
+############################
+
+
+
+# 확인
+$ helm -n monitoring ls
+
+NAME            NAMESPACE       REVISION        UPDATED                                 STATUS          CHART                           APP VERSION
+event-exporter  monitoring      1               2024-07-06 07:06:38.72388407 +0000 UTC  deployed        kubernetes-event-exporter-3.2.7 1.7.0
+prometheus      monitoring      1               2024-07-05 10:50:55.593723208 +0000 UTC deployed        kube-prometheus-stack-61.2.0    v0.75.0
+
+
+
+# 삭제시...
+$ helm -n monitoring delete event-exporter
+
+
+```
+
+
+
+### (3) curl 확인
+
+Curl 이 가능한 POD 에서...
+
+```sh
+
+$ curl http://event-exporter-kubernetes-event-exporter-metrics.monitoring.svc:2112/metrics
+
+
+...
+
+# HELP build_info A metric with a constant '1' value labeled by version, revision, branch, and goversion from which Kubernetes Event Exporter was built.
+# TYPE build_info gauge
+build_info{goarch="amd64",goos="linux",goversion="go1.21.12",revision="unknown",version="unknown"} 1
+# HELP events_discarded The total number of events discarded because of being older than the maxEventAgeSeconds specified
+# TYPE events_discarded counter
+events_discarded 0
+# HELP events_sent The total number of events processed
+# TYPE events_sent counter
+events_sent 65
+# HELP go_build_info Build information about the main Go module.
+# TYPE go_build_info gauge
+go_build_info{checksum="",path="github.com/resmoio/kubernetes-event-exporter",version="(devel)"} 1
+# HELP go_gc_duration_seconds A summary of the pause duration of garbage collection cycles.
+# TYPE go_gc_duration_seconds summary
+go_gc_duration_seconds{quantile="0"} 5.4302e-05
+go_gc_duration_seconds{quantile="0.25"} 7.92e-05
+go_gc_duration_seconds{quantile="0.5"} 9.54e-05
+go_gc_duration_seconds{quantile="0.75"} 0.0001197
+go_gc_duration_seconds{quantile="1"} 0.000296203
+go_gc_duration_seconds_sum 0.002953313
+go_gc_duration_seconds_count 27
+# HELP go_goroutines Number of goroutines that currently exist.
+# TYPE go_goroutines gauge
+go_goroutines 24
+# HELP go_info Information about the Go environment.
+# TYPE go_info gauge
+go_info{version="go1.21.12"} 1
+# HELP go_memstats_alloc_bytes Number of bytes allocated and still in use.
+# TYPE go_memstats_alloc_bytes gauge
+go_memstats_alloc_bytes 7.70976e+06
+# HELP go_memstats_alloc_bytes_total Total number of bytes allocated, even if freed.
+# TYPE go_memstats_alloc_bytes_total counter
+go_memstats_alloc_bytes_total 5.4430144e+07
+# HELP go_memstats_buck_hash_sys_bytes Number of bytes used by the profiling bucket hash table.
+# TYPE go_memstats_buck_hash_sys_bytes gauge
+go_memstats_buck_hash_sys_bytes 1.4706e+06
+# HELP go_memstats_frees_total Total number of frees.
+# TYPE go_memstats_frees_total counter
+go_memstats_frees_total 269425
+# HELP go_memstats_gc_sys_bytes Number of bytes used for garbage collection system metadata.
+# TYPE go_memstats_gc_sys_bytes gauge
+go_memstats_gc_sys_bytes 4.613096e+06
+# HELP go_memstats_heap_alloc_bytes Number of heap bytes allocated and still in use.
+# TYPE go_memstats_heap_alloc_bytes gauge
+go_memstats_heap_alloc_bytes 7.70976e+06
+# HELP go_memstats_heap_idle_bytes Number of heap bytes waiting to be used.
+# TYPE go_memstats_heap_idle_bytes gauge
+go_memstats_heap_idle_bytes 5.9392e+06
+# HELP go_memstats_heap_inuse_bytes Number of heap bytes that are in use.
+# TYPE go_memstats_heap_inuse_bytes gauge
+go_memstats_heap_inuse_bytes 1.0084352e+07
+# HELP go_memstats_heap_objects Number of allocated objects.
+# TYPE go_memstats_heap_objects gauge
+go_memstats_heap_objects 27174
+# HELP go_memstats_heap_released_bytes Number of heap bytes released to OS.
+# TYPE go_memstats_heap_released_bytes gauge
+go_memstats_heap_released_bytes 5.390336e+06
+# HELP go_memstats_heap_sys_bytes Number of heap bytes obtained from system.
+# TYPE go_memstats_heap_sys_bytes gauge
+go_memstats_heap_sys_bytes 1.6023552e+07
+# HELP go_memstats_last_gc_time_seconds Number of seconds since 1970 of last garbage collection.
+# TYPE go_memstats_last_gc_time_seconds gauge
+go_memstats_last_gc_time_seconds 1.7202443624577742e+09
+# HELP go_memstats_lookups_total Total number of pointer lookups.
+# TYPE go_memstats_lookups_total counter
+go_memstats_lookups_total 0
+# HELP go_memstats_mallocs_total Total number of mallocs.
+# TYPE go_memstats_mallocs_total counter
+go_memstats_mallocs_total 296599
+# HELP go_memstats_mcache_inuse_bytes Number of bytes in use by mcache structures.
+# TYPE go_memstats_mcache_inuse_bytes gauge
+go_memstats_mcache_inuse_bytes 2400
+# HELP go_memstats_mcache_sys_bytes Number of bytes used for mcache structures obtained from system.
+# TYPE go_memstats_mcache_sys_bytes gauge
+go_memstats_mcache_sys_bytes 15600
+# HELP go_memstats_mspan_inuse_bytes Number of bytes in use by mspan structures.
+# TYPE go_memstats_mspan_inuse_bytes gauge
+go_memstats_mspan_inuse_bytes 145320
+# HELP go_memstats_mspan_sys_bytes Number of bytes used for mspan structures obtained from system.
+# TYPE go_memstats_mspan_sys_bytes gauge
+go_memstats_mspan_sys_bytes 195552
+# HELP go_memstats_next_gc_bytes Number of heap bytes when next garbage collection will take place.
+# TYPE go_memstats_next_gc_bytes gauge
+go_memstats_next_gc_bytes 1.3092624e+07
+# HELP go_memstats_other_sys_bytes Number of bytes used for other system allocations.
+# TYPE go_memstats_other_sys_bytes gauge
+go_memstats_other_sys_bytes 624584
+# HELP go_memstats_stack_inuse_bytes Number of bytes in use by the stack allocator.
+# TYPE go_memstats_stack_inuse_bytes gauge
+go_memstats_stack_inuse_bytes 753664
+# HELP go_memstats_stack_sys_bytes Number of bytes obtained from system for stack allocator.
+# TYPE go_memstats_stack_sys_bytes gauge
+go_memstats_stack_sys_bytes 753664
+# HELP go_memstats_sys_bytes Number of bytes obtained from system.
+# TYPE go_memstats_sys_bytes gauge
+go_memstats_sys_bytes 2.3696648e+07
+# HELP go_threads Number of OS threads created.
+# TYPE go_threads gauge
+go_threads 8
+# HELP kube_api_read_cache_hits The total number of read requests served from cache when looking up object metadata
+# TYPE kube_api_read_cache_hits counter
+kube_api_read_cache_hits 31
+# HELP kube_api_read_cache_misses The total number of read requests served from kube-apiserver when looking up object metadata
+# TYPE kube_api_read_cache_misses counter
+kube_api_read_cache_misses 34
+# HELP process_cpu_seconds_total Total user and system CPU time spent in seconds.
+# TYPE process_cpu_seconds_total counter
+process_cpu_seconds_total 1.3
+# HELP process_max_fds Maximum number of open file descriptors.
+# TYPE process_max_fds gauge
+process_max_fds 1.048576e+06
+# HELP process_open_fds Number of open file descriptors.
+# TYPE process_open_fds gauge
+process_open_fds 11
+# HELP process_resident_memory_bytes Resident memory size in bytes.
+# TYPE process_resident_memory_bytes gauge
+process_resident_memory_bytes 6.0633088e+07
+# HELP process_start_time_seconds Start time of the process since unix epoch in seconds.
+# TYPE process_start_time_seconds gauge
+process_start_time_seconds 1.72024190565e+09
+# HELP process_virtual_memory_bytes Virtual memory size in bytes.
+# TYPE process_virtual_memory_bytes gauge
+process_virtual_memory_bytes 1.330855936e+09
+# HELP process_virtual_memory_max_bytes Maximum amount of virtual memory available in bytes.
+# TYPE process_virtual_memory_max_bytes gauge
+process_virtual_memory_max_bytes 1.8446744073709552e+19
+# HELP send_event_errors The total number of send event errors
+# TYPE send_event_errors counter
+send_event_errors 0
+# HELP watch_errors The total number of errors received from the informer
+# TYPE watch_errors counter
+watch_errors 0
+
+
+
+
+
+
+
+```
+
+
+
+
+
+### (9) clean up
+
+```sh
+$ kubectl -n prometheus get Deployment
+
+
+$ cd /home/song/song/event-exporter
+$ kubectl -n prometheus delete -f deploy.yaml
+
+
+
+$ kubectl -n event-exporter delete svc event-exporter-svc
+  
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 # 7. Prometheus install
 
 prometheus stack 으로 설치하는 prometheus 에서는 scrap 을 추가할 수가 없다.
@@ -1151,8 +1449,6 @@ spec:
               number: 80
 
 
-
-
 $ kubectl -n kafka apply -f ./kafka/strimzi/monitoring/21.prometheus-ingress.yaml
 
 ````
@@ -1161,4 +1457,231 @@ $ kubectl -n kafka apply -f ./kafka/strimzi/monitoring/21.prometheus-ingress.yam
   - URL : http://prometheus.kafka.20.249.174.177.nip.io
 
 
+
+
+
+
+
+# 8. events확인
+
+
+
+```sh
+
+# event확인 시간으로 소팅
+$ kubectl -n yjsong get events --sort-by=.metadata.creationTimestamp
+
+
+LAST SEEN   TYPE      REASON              OBJECT                           MESSAGE
+38m         Normal    Killing             pod/userlist-9fbfc64bc-c2drh     Stopping container userlist
+38m         Normal    SuccessfulCreate    replicaset/userlist-75574dc68d   Created pod: userlist-75574dc68d-nck9r
+38m         Normal    ScalingReplicaSet   deployment/userlist              Scaled up replica set userlist-75574dc68d to 1
+38m         Normal    Scheduled           pod/userlist-75574dc68d-nck9r    Successfully assigned yjsong/userlist-75574dc68d-nck9r to dio-master02
+37m         Normal    Pulling             pod/userlist-75574dc68d-nck9r    Pulling image "ssongman/iuserlist:v1"
+37m         Warning   Failed              pod/userlist-75574dc68d-nck9r    Error: ErrImagePull
+37m         Warning   Failed              pod/userlist-75574dc68d-nck9r    Failed to pull image "ssongman/iuserlist:v1": failed to pull and unpack image "docker.io/ssongman/iuserlist:v1": failed to resolve reference "docker.io/ssongman/iuserlist:v1": pull access denied, repository does not exist or may require authorization: server message: insufficient_scope: authorization failed
+38m         Warning   Failed              pod/userlist-75574dc68d-nck9r    Error: ImagePullBackOff
+38m         Normal    BackOff             pod/userlist-75574dc68d-nck9r    Back-off pulling image "ssongman/iuserlist:v1"
+37m         Normal    Scheduled           pod/userlist-8d74d58d8-tcslb     Successfully assigned yjsong/userlist-8d74d58d8-tcslb to dio-master03
+37m         Normal    SuccessfulCreate    replicaset/userlist-8d74d58d8    Created pod: userlist-8d74d58d8-tcslb
+37m         Normal    ScalingReplicaSet   deployment/userlist              Scaled up replica set userlist-8d74d58d8 to 1
+37m         Normal    Pulled              pod/userlist-8d74d58d8-tcslb     Container image "ssongman/userlist:v1" already present on machine
+37m         Normal    Created             pod/userlist-8d74d58d8-tcslb     Created container userlist
+37m         Normal    Started             pod/userlist-8d74d58d8-tcslb     Started container userlist
+
+
+
+
+### 파드 삭제
+$ kubectl -n yjsong delete pod userlist-8d74d58d8-tcslb
+
+
+
+# event확인
+$ kubectl -n yjsong get events --sort-by=.metadata.creationTimestamp
+LAST SEEN   TYPE      REASON                   OBJECT                           MESSAGE
+39m         Normal    Killing                  pod/userlist-9fbfc64bc-c2drh     Stopping container userlist
+38m         Normal    SuccessfulCreate         replicaset/userlist-75574dc68d   Created pod: userlist-75574dc68d-nck9r
+38m         Normal    ScalingReplicaSet        deployment/userlist              Scaled up replica set userlist-75574dc68d to 1
+38m         Normal    Scheduled                pod/userlist-75574dc68d-nck9r    Successfully assigned yjsong/userlist-75574dc68d-nck9r to dio-master02
+38m         Normal    Pulling                  pod/userlist-75574dc68d-nck9r    Pulling image "ssongman/iuserlist:v1"
+38m         Warning   Failed                   pod/userlist-75574dc68d-nck9r    Failed to pull image "ssongman/iuserlist:v1": failed to pull and unpack image "docker.io/ssongman/iuserlist:v1": failed to resolve reference "docker.io/ssongman/iuserlist:v1": pull access denied, repository does not exist or may require authorization: server message: insufficient_scope: authorization failed
+38m         Warning   Failed                   pod/userlist-75574dc68d-nck9r    Error: ErrImagePull
+38m         Normal    BackOff                  pod/userlist-75574dc68d-nck9r    Back-off pulling image "ssongman/iuserlist:v1"
+38m         Warning   Failed                   pod/userlist-75574dc68d-nck9r    Error: ImagePullBackOff
+38m         Normal    SuccessfulCreate         replicaset/userlist-8d74d58d8    Created pod: userlist-8d74d58d8-tcslb
+38m         Normal    Scheduled                pod/userlist-8d74d58d8-tcslb     Successfully assigned yjsong/userlist-8d74d58d8-tcslb to dio-master03
+38m         Normal    ScalingReplicaSet        deployment/userlist              Scaled up replica set userlist-8d74d58d8 to 1
+38m         Normal    Started                  pod/userlist-8d74d58d8-tcslb     Started container userlist
+38m         Normal    Created                  pod/userlist-8d74d58d8-tcslb     Created container userlist
+38m         Normal    Pulled                   pod/userlist-8d74d58d8-tcslb     Container image "ssongman/userlist:v1" already present on machine
+31s         Normal    Scheduled                pod/userlist-8d74d58d8-xl5xc     Successfully assigned yjsong/userlist-8d74d58d8-xl5xc to dio-master03
+32s         Normal    SuccessfulCreate         replicaset/userlist-8d74d58d8    Created pod: userlist-8d74d58d8-xl5xc
+32s         Normal    Killing                  pod/userlist-8d74d58d8-tcslb     Stopping container userlist
+32s         Warning   FailedToUpdateEndpoint   endpoints/userlist-svc           Failed to update endpoint yjsong/userlist-svc: Operation cannot be fulfilled on endpoints "userlist-svc": the object has been modified; please apply your changes to the latest version and try again
+31s         Normal    Pulled                   pod/userlist-8d74d58d8-xl5xc     Container image "ssongman/userlist:v1" already present on machine
+31s         Normal    Created                  pod/userlist-8d74d58d8-xl5xc     Created container userlist
+31s         Normal    Started                  pod/userlist-8d74d58d8-xl5xc     Started container userlist
+
+```
+
+
+
+
+
+# 11. elasticsearch kibana
+
+
+
+### helm search
+
+```sh
+
+
+$ kubectl create ns elastic
+
+$ helm search repo elasticsearch
+NAME                                                    CHART VERSION   APP VERSION     DESCRIPTION
+bitnami/elasticsearch                                   21.2.8          8.14.2          Elasticsearch is a distributed search and analy...
+gitlab/fluentd-elasticsearch                            6.2.8           2.8.0           A Fluentd Helm chart for Kubernetes with Elasti...
+prometheus-community/prometheus-elasticsearch-e...      6.0.0           v1.7.0          Elasticsearch stats exporter for Prometheus
+bitnami/dataplatform-bp2                                12.0.5          1.0.1           DEPRECATED This Helm chart can be used for the ...
+bitnami/kibana                                          11.2.10         8.14.2          Kibana is an open source, browser based analyti...
+song@dio-bastion01:~$
+
+
+
+$ cd ~/helm/charts
+
+$ helm fetch bitnami/elasticsearch
+
+```
+
+
+
+### helm install
+
+```sh
+
+
+
+$ helm -n elastic install elasticsearch bitnami/elasticsearch \
+    --set global.kibanaEnabled=true \
+    --set master.persistence.enabled=false \
+    --set master.replicaCount=1 \
+    --set master.persistence.enabled=false \
+    --set data.replicaCount=1 \
+    --set data.persistence.enabled=false \
+    --set coordinating.replicaCount=1 \
+    --set kibana.persistence.enabled=false \
+    --set kibana.ingress.enabled=true \
+    --set kibana.ingress.hostname=kibana.diopro.duckdns.org \
+    --set kibana.ingress.ingressClassName=traefik \
+    --dry-run=true > 12.dry-run.yaml
+    
+    
+
+
+###########################
+    --set ingress.enabled=true \
+    --set ingress.hostname=elasticsearch.diopro.duckdns.org
+    --set ingress.ingressClassName=traefik \
+
+###########################
+
+$ diff 11.dry-run.yaml 12.dry-run.yaml
+
+###########################
+
+
+```
+
+
+
+
+
+## kibana
+
+```
+
+
+http://kibana.diopro.duckdns.org
+
+
+
+
+
+
+```
+
+
+
+
+
+## event exporter setting
+
+
+
+```
+
+
+
+
+apiVersion: v1
+data:
+  config.yaml: |
+    leaderElection: {}
+    logFormat: pretty
+    logLevel: debug
+    receivers:
+      - name: dump
+        stdout: {}
+      - name: "slack"
+        slack:
+          token: "xoxb-7233015791040-7380841842997-OYuZnIk99g0AN6GEvbvt9FsN"
+          channel: "#kube-event"
+          message: "Received a Kubernetes Event {{ .Message}}"
+          username: "kube-event-exporter"
+          fields:
+            message: "{{ .Message }}"
+            namespace: "{{ .Namespace }}"
+            reason: "{{ .Reason }}"
+            object: "{{ .Namespace }}"
+      - name: "elasticsearch"
+        elasticsearch:
+          hosts:
+            - "http://elasticsearch.elastic.svc:9200"
+          username: "elastic"
+          index: "kube-events"
+          indexFormat: "kube-events-{2006-01-02}"
+          useEventID: true
+    route:
+      routes:
+      - match:
+        - receiver: dump
+      - match:
+          - kind: "Pod|Deployment|ReplicaSet"
+            receiver: "slack"
+      - match:
+          - receiver: "elasticsearch"
+kind: ConfigMap
+metadata:
+  annotations:
+    meta.helm.sh/release-name: event-exporter
+    meta.helm.sh/release-namespace: monitoring
+  creationTimestamp: "2024-07-06T07:06:39Z"
+  labels:
+    app.kubernetes.io/instance: event-exporter
+    app.kubernetes.io/managed-by: Helm
+    app.kubernetes.io/name: kubernetes-event-exporter
+    app.kubernetes.io/version: 1.7.0
+    helm.sh/chart: kubernetes-event-exporter-3.2.7
+  name: event-exporter-kubernetes-event-exporter
+  namespace: monitoring
+  resourceVersion: "10588650"
+  uid: db43532d-aad0-4154-9a05-abc33323c700
+  
+  
+  
+```
 
