@@ -147,6 +147,10 @@ $ vi values.yaml
 
 ## 4) kube-prometheus-stack 설치
 
+
+
+### install
+
 ```sh
 # NS 생성
 $ kubectl create ns monitoring
@@ -199,9 +203,96 @@ $ helm -n monitoring delete prometheus
 
 
 
+### upgrade
+
+```sh
+
+
+
+$ helm -n monitoring ls
+song@dio-bastion01:~/helm/charts/kube-prometheus-stack$ helm -n monitoring ls
+NAME            NAMESPACE       REVISION        UPDATED                                 STATUS          CHART                           APP VERSION
+prometheus      monitoring      1               2024-07-05 01:32:41.73515446 +0000 UTC  deployed        kube-prometheus-stack-61.2.0    v0.75.0
+
+
+
+$ helm -n monitoring upgrade prometheus prometheus-community/prometheus \
+  --set alertmanager.enabled=false \
+  --set grafana.ingress.enabled=true \
+  --set grafana.ingress.hosts[0]=grafana.diopro.duckdns.org \
+  --set prometheus.ingress.enabled=true \
+  --set prometheus.ingress.hosts[0]=prometheus.diopro.duckdns.org \
+  --set prometheus.prometheusSpec.additionalScrapeConfigs='
+    - job_name: "event_exporter"
+      static_configs:
+      - targets: ["event-exporter:9102"]'
+
+
+
+Release "prometheus" has been upgraded. Happy Helming!
+NAME: prometheus
+LAST DEPLOYED: Fri Jul  5 05:37:41 2024
+NAMESPACE: monitoring
+STATUS: deployed
+REVISION: 2
+TEST SUITE: None
+NOTES:
+The Prometheus server can be accessed via port 80 on the following DNS name from within your cluster:
+prometheus-server.monitoring.svc.cluster.local
+
+
+Get the Prometheus server URL by running these commands in the same shell:
+  export POD_NAME=$(kubectl get pods --namespace monitoring -l "app.kubernetes.io/name=prometheus,app.kubernetes.io/instance=prometheus" -o jsonpath="{.items[0].metadata.name}")
+  kubectl --namespace monitoring port-forward $POD_NAME 9090
+
+
+#################################################################################
+######   WARNING: Pod Security Policy has been disabled by default since    #####
+######            it deprecated after k8s 1.25+. use                        #####
+######            (index .Values "prometheus-node-exporter" "rbac"          #####
+###### .          "pspEnabled") with (index .Values                         #####
+######            "prometheus-node-exporter" "rbac" "pspAnnotations")       #####
+######            in case you still need it.                                #####
+#################################################################################
+
+
+The Prometheus PushGateway can be accessed via port 9091 on the following DNS name from within your cluster:
+prometheus-prometheus-pushgateway.monitoring.svc.cluster.local
+
+
+Get the PushGateway URL by running these commands in the same shell:
+  export POD_NAME=$(kubectl get pods --namespace monitoring -l "app=prometheus-pushgateway,component=pushgateway" -o jsonpath="{.items[0].metadata.name}")
+  kubectl --namespace monitoring port-forward $POD_NAME 9091
+
+For more information on running Prometheus, visit:
+https://prometheus.io/
+
+
+
+
+
+
+
+
+$ helm -n monitoring ls
+
+NAME            NAMESPACE       REVISION        UPDATED                                 STATUS          CHART                   APP VERSION
+prometheus      monitoring      2               2024-07-05 05:37:41.398442516 +0000 UTC deployed        prometheus-25.22.0      v2.53.0
+
+
+
+      
+```
+
+
+
+
+
+
+
 # 3. UI 접속
 
-Helm 차트를 통해 Grafana가 설치되었으므로, 이를 구성하고 접근하는 방법을 설정해야 합니다.
+Helm 차트를 통해 Grafana가 설치되었으므로, 이를 구성하고 접근하는 방법을 설정해야 한다.
 
 
 
@@ -395,6 +486,679 @@ http://grafana.4.217.252.117.nip.io/
 ![image-20240607172013854](./K8sMonitoring.assets/image-20240607172013854.png)
 
 
+
+
+
+
+
+
+
+# 6. Event exporter
+
+
+
+
+
+## ver1.0(google-containers)
+
+
+
+```sh
+
+$ cat <<EOF | kubectl apply -f -
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: event-exporter
+  namespace: monitoring
+  labels:
+    app: event-exporter
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: event-exporter
+  template:
+    metadata:
+      labels:
+        app: event-exporter
+    spec:
+      containers:
+        - name: event-exporter
+          image: gcr.io/google-containers/event-exporter:v0.3.0
+          args:
+            - "--source=kubernetes:https://kubernetes.default.svc"
+            - "--sink=prometheus:https://prometheus-kube-prometheus-prometheus.monitoring.svc.cluster.local:9090"
+          env:
+            - name: KUBERNETES_SERVICE_HOST
+              value: "kubernetes.default.svc"
+            - name: KUBERNETES_SERVICE_PORT
+              value: "443"
+EOF
+
+
+
+```
+
+
+
+
+
+### clean up
+
+```sh
+$ kubectl -n monitoring get Deployment
+
+$ kubectl -n monitoring  delete Deployment event-exporter
+
+```
+
+
+
+
+
+
+
+
+
+## ver2.0(caicloud)
+
+
+
+참고 : https://github.com/caicloud/event_exporter
+
+
+
+### (1) deploy 파일 설정
+
+```sh
+$ mkdir -p /home/song/song/event-exporter
+  cd /home/song/song/event-exporter
+
+
+$ cat > deploy
+--
+
+--
+```
+
+
+
+```
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: event-exporter
+  labels:
+    name: event-exporter
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  labels:
+    name: event-exporter
+  name: event-exporter
+subjects:
+  - kind: ServiceAccount
+    name: event-exporter
+    namespace: default
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: view
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    name: event-exporter
+  name: event-exporter
+spec:
+  replicas: 1
+  revisionHistoryLimit: 2
+  selector:
+    matchLabels:
+      app: event-exporter
+  strategy:
+    type: RollingUpdate
+  template:
+    metadata:
+      annotations:
+        prometheus.io/path: /metrics
+        prometheus.io/port: '9102'
+        prometheus.io/scrape: 'true'
+      labels:
+        app: event-exporter
+    spec:
+      containers:
+        - name: event-exporter
+          image: 'caicloud/event-exporter:v1.0.0'
+          imagePullPolicy: Always
+          args:
+            - --eventType=Warning
+            - --eventType=Normal
+          ports:
+            - containerPort: 9102
+              name: http
+          resources:
+            limits:
+              memory: 100Mi
+            requests:
+              memory: 40Mi
+      serviceAccountName: event-exporter
+      terminationGracePeriodSeconds: 30
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  labels:
+    name: event-exporter
+  name: event-exporter
+spec:
+  ports:
+    - name: http
+      port: 9102
+      targetPort: 9102
+  selector:
+    app: event-exporter
+```
+
+
+
+
+
+### (2) 배포
+
+```sh
+$ kubectl -n prometheus apply -f deploy.yaml
+
+```
+
+
+
+
+
+### (3) 확인
+
+curl 수행가능한 특정 POD 내에서...
+
+```sh
+$ curl event-exporter:9102/metrics
+
+or
+
+$ curl event-exporter.prometheus.svc:9102/metrics
+...
+
+```
+
+
+
+
+
+```
+
+$ curl event-exporter.prometheus.svc:9102/metrics
+
+# HELP event_exporter_build_info A metric with a constant '1' value labeled by version, branch,build_user,build_date and go_version from which event_exporter was built
+# TYPE event_exporter_build_info gauge
+event_exporter_build_info{branch="(HEAD",build_date="2020-11-18T02:59:59Z",build_user="Caicloud Authors",go_version="go1.13.6",version="b7605b3"} 1
+# HELP go_gc_duration_seconds A summary of the pause duration of garbage collection cycles.
+# TYPE go_gc_duration_seconds summary
+go_gc_duration_seconds{quantile="0"} 1.48e-05
+go_gc_duration_seconds{quantile="0.25"} 1.97e-05
+go_gc_duration_seconds{quantile="0.5"} 2.79e-05
+go_gc_duration_seconds{quantile="0.75"} 5.0399e-05
+go_gc_duration_seconds{quantile="1"} 0.000132
+go_gc_duration_seconds_sum 0.000671598
+go_gc_duration_seconds_count 17
+# HELP go_goroutines Number of goroutines that currently exist.
+# TYPE go_goroutines gauge
+go_goroutines 26
+# HELP go_info Information about the Go environment.
+# TYPE go_info gauge
+go_info{version="go1.13.6"} 1
+# HELP go_memstats_alloc_bytes Number of bytes allocated and still in use.
+# TYPE go_memstats_alloc_bytes gauge
+go_memstats_alloc_bytes 3.7106e+06
+# HELP go_memstats_alloc_bytes_total Total number of bytes allocated, even if freed.
+# TYPE go_memstats_alloc_bytes_total counter
+go_memstats_alloc_bytes_total 4.548e+07
+# HELP go_memstats_buck_hash_sys_bytes Number of bytes used by the profiling bucket hash table.
+# TYPE go_memstats_buck_hash_sys_bytes gauge
+go_memstats_buck_hash_sys_bytes 1.458044e+06
+# HELP go_memstats_frees_total Total number of frees.
+# TYPE go_memstats_frees_total counter
+go_memstats_frees_total 487616
+# HELP go_memstats_gc_cpu_fraction The fraction of this program's available CPU time used by the GC since the program started.
+# TYPE go_memstats_gc_cpu_fraction gauge
+go_memstats_gc_cpu_fraction 5.063004821014084e-06
+# HELP go_memstats_gc_sys_bytes Number of bytes used for garbage collection system metadata.
+# TYPE go_memstats_gc_sys_bytes gauge
+go_memstats_gc_sys_bytes 2.38592e+06
+# HELP go_memstats_heap_alloc_bytes Number of heap bytes allocated and still in use.
+# TYPE go_memstats_heap_alloc_bytes gauge
+go_memstats_heap_alloc_bytes 3.7106e+06
+# HELP go_memstats_heap_idle_bytes Number of heap bytes waiting to be used.
+# TYPE go_memstats_heap_idle_bytes gauge
+go_memstats_heap_idle_bytes 6.0956672e+07
+# HELP go_memstats_heap_inuse_bytes Number of heap bytes that are in use.
+# TYPE go_memstats_heap_inuse_bytes gauge
+go_memstats_heap_inuse_bytes 5.464064e+06
+# HELP go_memstats_heap_objects Number of allocated objects.
+# TYPE go_memstats_heap_objects gauge
+go_memstats_heap_objects 13773
+# HELP go_memstats_heap_released_bytes Number of heap bytes released to OS.
+# TYPE go_memstats_heap_released_bytes gauge
+go_memstats_heap_released_bytes 5.9416576e+07
+# HELP go_memstats_heap_sys_bytes Number of heap bytes obtained from system.
+# TYPE go_memstats_heap_sys_bytes gauge
+go_memstats_heap_sys_bytes 6.6420736e+07
+# HELP go_memstats_last_gc_time_seconds Number of seconds since 1970 of last garbage collection.
+# TYPE go_memstats_last_gc_time_seconds gauge
+go_memstats_last_gc_time_seconds 1.7201897688595521e+09
+# HELP go_memstats_lookups_total Total number of pointer lookups.
+# TYPE go_memstats_lookups_total counter
+go_memstats_lookups_total 0
+# HELP go_memstats_mallocs_total Total number of mallocs.
+# TYPE go_memstats_mallocs_total counter
+go_memstats_mallocs_total 501389
+# HELP go_memstats_mcache_inuse_bytes Number of bytes in use by mcache structures.
+# TYPE go_memstats_mcache_inuse_bytes gauge
+go_memstats_mcache_inuse_bytes 3472
+# HELP go_memstats_mcache_sys_bytes Number of bytes used for mcache structures obtained from system.
+# TYPE go_memstats_mcache_sys_bytes gauge
+go_memstats_mcache_sys_bytes 16384
+# HELP go_memstats_mspan_inuse_bytes Number of bytes in use by mspan structures.
+# TYPE go_memstats_mspan_inuse_bytes gauge
+go_memstats_mspan_inuse_bytes 64192
+# HELP go_memstats_mspan_sys_bytes Number of bytes used for mspan structures obtained from system.
+# TYPE go_memstats_mspan_sys_bytes gauge
+go_memstats_mspan_sys_bytes 98304
+# HELP go_memstats_next_gc_bytes Number of heap bytes when next garbage collection will take place.
+# TYPE go_memstats_next_gc_bytes gauge
+go_memstats_next_gc_bytes 6.693792e+06
+# HELP go_memstats_other_sys_bytes Number of bytes used for other system allocations.
+# TYPE go_memstats_other_sys_bytes gauge
+go_memstats_other_sys_bytes 694652
+# HELP go_memstats_stack_inuse_bytes Number of bytes in use by the stack allocator.
+# TYPE go_memstats_stack_inuse_bytes gauge
+go_memstats_stack_inuse_bytes 688128
+# HELP go_memstats_stack_sys_bytes Number of bytes obtained from system for stack allocator.
+# TYPE go_memstats_stack_sys_bytes gauge
+go_memstats_stack_sys_bytes 688128
+# HELP go_memstats_sys_bytes Number of bytes obtained from system.
+# TYPE go_memstats_sys_bytes gauge
+go_memstats_sys_bytes 7.1762168e+07
+# HELP go_threads Number of OS threads created.
+# TYPE go_threads gauge
+go_threads 10
+# HELP process_cpu_seconds_total Total user and system CPU time spent in seconds.
+# TYPE process_cpu_seconds_total counter
+process_cpu_seconds_total 7.1
+# HELP process_max_fds Maximum number of open file descriptors.
+# TYPE process_max_fds gauge
+process_max_fds 1.048576e+06
+# HELP process_open_fds Number of open file descriptors.
+# TYPE process_open_fds gauge
+process_open_fds 10
+# HELP process_resident_memory_bytes Resident memory size in bytes.
+# TYPE process_resident_memory_bytes gauge
+process_resident_memory_bytes 3.633152e+07
+# HELP process_start_time_seconds Start time of the process since unix epoch in seconds.
+# TYPE process_start_time_seconds gauge
+process_start_time_seconds 1.72018816313e+09
+# HELP process_virtual_memory_bytes Virtual memory size in bytes.
+# TYPE process_virtual_memory_bytes gauge
+process_virtual_memory_bytes 1.37408512e+08
+# HELP process_virtual_memory_max_bytes Maximum amount of virtual memory available in bytes.
+# TYPE process_virtual_memory_max_bytes gauge
+process_virtual_memory_max_bytes -1
+# HELP promhttp_metric_handler_requests_in_flight Current number of scrapes being served.
+# TYPE promhttp_metric_handler_requests_in_flight gauge
+promhttp_metric_handler_requests_in_flight 1
+# HELP promhttp_metric_handler_requests_total Total number of scrapes by HTTP status code.
+# TYPE promhttp_metric_handler_requests_total counter
+promhttp_metric_handler_requests_total{code="200"} 50
+promhttp_metric_handler_requests_total{code="500"} 0
+promhttp_metric_handler_requests_total{code="503"} 0
+
+
+
+
+```
+
+
+
+
+
+
+
+### (4) prometheus config 수정
+
+```sh
+
+scrape_configs:
+  # The job name is added as a label `job=<job_name>` to any timeseries scraped from this config.
+  - job_name: 'prometheus'
+
+    # metrics_path defaults to '/metrics'
+    # scheme defaults to 'http'.
+
+    static_configs:
+    - targets: ['localhost:9090']
+    
+  - job_name: event_exporter
+    metrics_path: /metrics
+    static_configs:
+    - targets:
+      - http://event-exporter:9102
+    
+```
+
+
+
+
+
+
+
+
+
+
+
+### (9) clean up
+
+```sh
+$ kubectl -n prometheus get Deployment
+
+
+$ cd /home/song/song/event-exporter
+$ kubectl -n prometheus delete -f deploy.yaml
+
+```
+
+
+
+
+
+
+
+# 7. Prometheus install
+
+prometheus stack 으로 설치하는 prometheus 에서는 scrap 을 추가할 수가 없다.
+
+별도 Prometheus 를 설치하는 방법을 알아보자.
+
+
+
+
+
+
+
+## 1) helm deploy
+
+```sh
+# repo추가
+$ helm repo add prometheus-community https://prometheus-community.github.io/helm-charts
+  helm repo list
+  
+$ helm repo update
+
+
+
+
+# NS 생성
+$ kubectl create ns prometheus
+
+
+
+
+
+# 설치전 기설치여부 확인
+$ helm -n prometheus list
+NAME    NAMESPACE       REVISION        UPDATED STATUS  CHART   APP VERSION
+
+
+$ helm search repo prometheus
+...
+prometheus-community/prometheus                         25.13.0         v2.49.1         Prometheus is a monitoring system and time seri...
+...
+prometheus-community/prometheus                         25.21.0         v2.52.0         Prometheus is a monitoring system and time seri...
+
+
+
+NAME                                                    CHART VERSION   APP VERSION     DESCRIPTION
+prometheus-community/prometheus                         25.22.0         v2.53.0         Prometheus is a monitoring system and time seri...
+prometheus-community/prometheus-node-exporter           4.37.0          1.8.1           A Helm chart for prometheus node-exporter
+
+
+
+
+
+
+# Fetch
+$ mkdir -p ~/helm/charts/
+  cd ~/helm/charts/
+
+
+$ helm fetch prometheus-community/prometheus
+
+$ ll
+-rw-r--r-- 1 ktdseduuser ktdseduuser 59331 Jun  4 12:39 prometheus-22.6.2.tgz
+-rw-r--r-- 1 ktdseduuser ktdseduuser 69825 Sep  2 16:34 prometheus-23.4.0.tgz
+-rw-r--r-- 1 ubuntu ubuntu 75037 Feb 24 08:45 prometheus-25.13.0.tgz
+-rw-r--r-- 1 song song 79422 Jun 14 17:17 prometheus-25.21.0.tgz
+-rw-r--r-- 1 song song  79631 Jul  5 13:50 prometheus-25.22.0.tgz
+
+
+
+
+
+$ tar -zxvf prometheus-25.22.0.tgz
+
+$ cd ~/helm/charts/prometheus
+
+# helm 실행 dry-run
+$ helm -n prometheus install prometheus . \
+  --set configmapReload.prometheus.enabled=true \
+  --set server.enabled=true \
+  --set server.ingress.enabled=true \
+  --set server.ingress.hosts[0]=prometheus2.diopro.duckdns.org \
+  --set server.persistentVolume.enabled=false \
+  --set alertmanager.enabled=false \
+  --set kube-state-metrics.enabled=false \
+  --set prometheus-node-exporter.enabled=false \
+  --set prometheus-pushgateway.enabled=false \
+  --dry-run=true > 11.dry-run.yaml
+
+
+  
+#######
+  --set server.image.repository=quay.io/prometheus/prometheus \
+  --set server.namespaces[0]=kafka \
+
+#######
+
+#######
+
+
+
+
+
+# helm 실행
+
+
+
+
+# 확인
+$ helm -n prometheus list
+NAME            NAMESPACE       REVISION        UPDATED                                 STATUS          CHART                   APP VERSION
+prometheus      kafka           1               2023-06-04 12:35:18.418462244 +0000 UTC deployed        prometheus-22.6.2       v2.44.0
+
+NAME            NAMESPACE       REVISION        UPDATED                                 STATUS          CHART                   APP VERSION
+prometheus      kafka           1               2023-09-02 16:35:39.831272244 +0000 UTC deployed        prometheus-23.4.0       v2.46.0
+
+NAME            NAMESPACE       REVISION        UPDATED                                 STATUS          CHART                   APP VERSION
+prometheus      kafka           1               2024-02-24 08:48:00.012127268 +0000 UTC deployed        prometheus-25.13.0      v2.49.1
+
+NAME            NAMESPACE       REVISION        UPDATED                                 STATUS          CHART                   APP VERSION
+prometheus      kafka           1               2024-06-14 17:18:49.039512168 +0000 UTC deployed        prometheus-25.21.0      v2.52.0
+
+
+NAME            NAMESPACE       REVISION        UPDATED                                 STATUS          CHART                   APP VERSION
+prometheus      prometheus      1               2024-07-05 13:54:59.775484 +0000 UTC    deployed        prometheus-25.22.0      v2.53.0
+
+
+
+## 확인
+$ helm -n prometheus status prometheus
+$ helm -n prometheus get all prometheus
+
+
+## 삭제시...
+$ helm -n prometheus delete prometheus
+
+
+
+
+```
+
+
+
+### [Troble Shooting] CRB 추가 생성
+
+- 권한 오류가 발생하여 확인하니 helm chart 에 의해서 당연히  설치되어야 할 권한이 생기지 않았다.
+- helm chart 오류인듯 하다.
+- 아래와 같이 수동으로 생성한다.
+
+```sh
+$ kubectl -n kafka apply -f - <<EOF
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  labels:
+    component: "server"
+    app: prometheus
+    release: prometheus
+    chart: prometheus-15.10.1
+    heritage: Helm
+  name: prometheus-server
+subjects:
+  - kind: ServiceAccount
+    name: prometheus-server
+    namespace: kafka
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: prometheus-server
+EOF
+
+
+$ kubectl -n prometheus get ClusterRoleBinding | grep prometheus
+
+prometheus-server                                        ClusterRole/prometheus-server                                        112s
+
+
+```
+
+
+
+
+
+
+
+## 3) prometheus 확인 
+
+```sh
+# pod 확인
+$ kubectl -n prometheus get pod 
+NAME                                          READY   STATUS    RESTARTS      AGE
+prometheus-server-5b5d787f8d-rb8zz            1/1     Running   0             4m36s
+---
+prometheus-server-6676478584-cdqlc            2/2     Running   0          87s
+---
+prometheus-server-8476c8485-qn8cv             1/2     Running   0             18s
+---
+prometheus-server-58d88565d9-4wdh8   2/2     Running   0          2m40s
+
+
+
+
+
+# pod log 확인
+$ kubectl -n prometheus logs -f deploy/prometheus-server
+
+
+
+# svc 확인
+$ kubectl -n prometheus  get svc
+NAME                                  TYPE        CLUSTER-IP       EXTERNAL-IP   PORT(S)                               AGE
+...
+prometheus-server                     ClusterIP   10.43.124.104   <none>        80/TCP                                117s
+---
+prometheus-server                     ClusterIP   10.43.3.91      <none>        80/TCP                                         118s
+---
+prometheus-server                     ClusterIP   10.43.156.58   <none>        80/TCP                                         39s
+
+
+
+
+# ClusterRoleBinding 확인
+$ kubectl -n prometheus  get ClusterRoleBinding prometheus-server
+
+NAME                ROLE                            AGE
+prometheus-server   ClusterRole/prometheus-server   4m28s
+
+
+$ kubectl -n prometheus get ClusterRoleBinding | grep prometheus
+prometheus-server                                        ClusterRole/prometheus-server                                        3m52s
+
+
+```
+
+
+
+
+
+## 4) ingress
+
+helm  install 시 생성했으므로 추가로 생성할 필요 없음.  
+
+````sh
+$ cd ~/githubrepo/ktds-edu-kafka
+
+$ cat ./kafka/strimzi/monitoring/21.prometheus-ingress.yaml
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: prometheus-ingress
+spec:
+  ingressClassName: traefik
+  rules:
+  - host: "prometheus.kafka.20.249.174.177.nip.io"
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: prometheus-server
+            port:
+              number: 80
+
+
+
+
+$ kubectl -n kafka apply -f ./kafka/strimzi/monitoring/21.prometheus-ingress.yaml
+
+````
+
+- 확인
+  - URL : http://prometheus.kafka.20.249.174.177.nip.io
 
 
 
