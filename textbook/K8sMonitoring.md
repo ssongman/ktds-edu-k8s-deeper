@@ -1638,7 +1638,7 @@ data:
         stdout: {}
       - name: "slack"
         slack:
-          token: "xoxb-7233015xxxxxxxxxxxxxxx"
+          token: "xxxxxxxxxxxxxxxx"
           channel: "#kube-event"
           message: "Received a Kubernetes Event {{ .Message}}"
           username: "kube-event-exporter"
